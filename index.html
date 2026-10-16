@@ -658,7 +658,7 @@ function buildCfg(m, params) {
 /* A widget in state is small: position + either {mod, params}, {bp}, or a full custom config. */
 function cfgOf(w) {
   if (w.mod) {
-    const m = MOD[w.mod]; if (!m) return { name: "Unknown module", url: "", display: "text" };
+    const m = MOD[w.mod]; if (!m) return { name: w.title || `Missing module: ${w.mod}`, url: "", display: "text", missing: true };
     const c = buildCfg(m, w.params || {}); return { ...c, name: w.title || c.name };
   }
   if (w.bp && BANK_BY_ID[w.bp]) { const { desc, id, ...b } = BANK_BY_ID[w.bp]; return { ...b, name: w.title || b.name }; }
@@ -786,7 +786,7 @@ function schedule(id) {
   r.timer = setInterval(() => { if (!document.hidden) load(id); }, Math.max(10, +r.cfg.refresh || 300) * 1000);
 }
 async function load(id) {
-  const r = rt.get(id); if (!r || r.loading) return;
+  const r = rt.get(id); if (!r || r.loading || r.cfg.missing || !r.cfg.url) return;
   r.loading = true;
   const ctrl = new AbortController(); const to = setTimeout(() => ctrl.abort(), 20000);
   try {
@@ -800,6 +800,7 @@ async function load(id) {
 
 /* ═══ Painting ════════════════════════════════════════════ */
 function render(c, r, cols) {
+  if (c.missing) return `<div class="state"><strong>Module not found</strong><span>This widget uses a module that isn't in blueprints.js. Remove it, or update blueprints.js.</span></div>`;
   if (r.error && r.value === undefined) return `<div class="state"><strong>No signal</strong><span>${esc(r.error)}</span><button data-a="refresh">Try again</button></div>`;
   if (r.value === undefined && r.data === undefined) return `<div class="skel"><i></i><i></i></div>`;
   return (DISPLAYS[c.display] || DISPLAYS.text)(c, r.value, r, cols);
