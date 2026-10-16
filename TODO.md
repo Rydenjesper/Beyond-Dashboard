@@ -211,8 +211,8 @@ Inget byggsteg, inga testramverk som kräver kompilering. Kör med Node 20+ (`no
 ## 7. Städning
 
 - [x] `index.html` är ~1 400 rader. Dela upp i flera klassiska scripts (`js/engine.js`, `js/displays.js`, `js/bank.js`, `js/editor.js`, `js/welcome.js`, `js/share.js`) och `css/app.css`. Behåll laddordningen. Inga ES-moduler (se regel 1).
-- [ ] Uppdatera README: nya funktioner, hur man lägger till moduler med `secret`-param och `chart`, och proxy-instruktionen. *(v1.1-delen klar: boards, lokala widgets, backup, säkerhet, param-typerna, tester. `chart` och proxy kvar.)*
-- [ ] Lägg till en GIF överst i README som visar drag och reflow, modulinställning och delning.
+- [x] Uppdatera README: nya funktioner, hur man lägger till moduler med `secret`-param och `chart`, och proxy-instruktionen. *(v1.1-delen klar: boards, lokala widgets, backup, säkerhet, param-typerna, tester. `chart` och proxy kvar.)*
+- [x] Lägg till en GIF överst i README som visar drag och reflow, modulinställning och delning. *(`docs/demo.gif`, 5,5 MB. Krymp gärna med gifsicle om det behövs.)*
 
 ---
 

@@ -2,7 +2,9 @@
 
 A modular dashboard for the internet's weirdest live data. Pick a module, choose what to show and where (UV index in the Sahara, waves at Point Nemo, your own city's pollen), drag it anywhere on the board, connect your own endpoints and share the whole layout as a link.
 
-No backend, no build step, no account. Open `index.html`.
+No backend, no build step, no account. Open `index.html`, or try it live: **[rydenjesper.github.io/Beyond-Dashboard](https://rydenjesper.github.io/Beyond-Dashboard/)**
+
+![Hovering a chart, dragging a widget while the others make room, setting up a module for the South Pole, and sharing the board as a link](docs/demo.gif)
 
 ## Run it
 
