@@ -61,7 +61,65 @@ const syncRadios = () => $$("#grid .radio, #cfgPreview .radio").forEach(r => r._
 ["play", "playing", "pause", "waiting", "error", "emptied"].forEach(t => player.addEventListener(t, syncRadios));
 player.addEventListener("error", () => { if (player.dataset.ch) toast("The radio stream didn't start. Try again in a moment."); });
 
+/* Countdown target: "2026-07-01", or "12-24" for the next one every year. */
+function nextDate(s, now = new Date()) {
+  let m = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(s);
+  if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
+  m = /^(\d{1,2})-(\d{1,2})$/.exec(s); if (!m) return null;
+  const d = new Date(now.getFullYear(), +m[1] - 1, +m[2]);
+  return d < new Date(now.getFullYear(), now.getMonth(), now.getDate()) ? new Date(now.getFullYear() + 1, +m[1] - 1, +m[2]) : d;
+}
+/* Moon: age in days since a known new moon, over the mean synodic month. Good to a few hours. */
+const SYNODIC = 29.530588853, NEW_MOON = Date.UTC(2000, 0, 6, 18, 14);
+function moonPhase(t = Date.now()) {
+  const age = (((t - NEW_MOON) / 86400e3) % SYNODIC + SYNODIC) % SYNODIC, f = age / SYNODIC;
+  const lit = (1 - Math.cos(2 * Math.PI * f)) / 2;
+  const name = age < 1.0 || age > SYNODIC - 1.0 ? "New moon" : Math.abs(age - SYNODIC / 2) < 1.0 ? "Full moon" : Math.abs(age - SYNODIC / 4) < 1.0 ? "First quarter" : Math.abs(age - 3 * SYNODIC / 4) < 1.0 ? "Last quarter"
+    : f < .25 ? "Waxing crescent" : f < .5 ? "Waxing gibbous" : f < .75 ? "Waning gibbous" : "Waning crescent";
+  const toFull = ((SYNODIC / 2 - age) % SYNODIC + SYNODIC) % SYNODIC;
+  return { age, f, lit, name, nextFull: new Date(t + toFull * 86400e3) };
+}
+function periodProgress(of, now = new Date()) {
+  const y = now.getFullYear(), mo = now.getMonth();
+  const [a, b] = of === "day" ? [new Date(y, mo, now.getDate()), new Date(y, mo, now.getDate() + 1)]
+    : of === "week" ? (() => { const s = new Date(y, mo, now.getDate() - (now.getDay() + 6) % 7); return [s, new Date(s.getFullYear(), s.getMonth(), s.getDate() + 7)]; })()
+    : of === "month" ? [new Date(y, mo, 1), new Date(y, mo + 1, 1)] : [new Date(y, 0, 1), new Date(y + 1, 0, 1)];
+  return (now - a) / (b - a) * 100;
+}
+
 const LOCAL = {
+  countdown(body, c) {
+    body.innerHTML = `<div class="cdown" data-tick><span class="cdown-n"></span><span class="cdown-l"></span></div>`;
+    const root = body.firstElementChild;
+    root._tick = () => {
+      const d = nextDate(c.date);
+      if (!d) { root.querySelector(".cdown-n").textContent = "—"; root.querySelector(".cdown-l").textContent = "Set a date like 2026-07-01 or 12-24"; return; }
+      const now = new Date(), today = new Date(now.getFullYear(), now.getMonth(), now.getDate()), days = Math.round((d - today) / 86400e3);
+      const hrs = Math.max(0, Math.ceil((d - now) / 3600e3));
+      const [n, l] = days === 0 ? ["Today", `It's ${c.name}!`] : days < 0 ? [`${-days} day${days === -1 ? "" : "s"}`, `since ${c.name}`] : days === 1 ? [`${hrs} hours`, `until ${c.name}`] : [`${days} days`, `until ${c.name}`];
+      root.querySelector(".cdown-n").textContent = n; root.querySelector(".cdown-l").textContent = l;
+    };
+    root._tick();
+  },
+  moon(body) {
+    body.innerHTML = `<div class="moon" data-tick><svg viewBox="-50 -50 100 100" aria-hidden="true"><circle class="moon-dark" r="46"/><path class="moon-lit"/></svg><div><b class="moon-name"></b><span class="moon-sub"></span></div></div>`;
+    const root = body.firstElementChild;
+    root._tick = () => {
+      const m = moonPhase(), r = 46, waxing = m.f < .5, k = Math.cos(2 * Math.PI * m.f) * r;   // terminator ellipse x-radius
+      /* lit half on the right while waxing (northern hemisphere), then the terminator bulges in or out */
+      const outer = `M0,${-r} A${r},${r} 0 0 ${waxing ? 1 : 0} 0,${r}`, inner = `A${Math.abs(k)},${r} 0 0 ${(waxing ? k > 0 : k < 0) ? 0 : 1} 0,${-r}`;
+      root.querySelector(".moon-lit").setAttribute("d", `${outer} ${inner} Z`);
+      root.querySelector(".moon-name").textContent = m.name;
+      root.querySelector(".moon-sub").textContent = `${Math.round(m.lit * 100)}% lit · full ${m.name === "Full moon" ? "now" : fmt(m.nextFull.toISOString(), { format: "date" })}`;
+    };
+    root._tick();
+  },
+  progress(body, c) {
+    const draw = () => { body.innerHTML = DISPLAYS.gauge({ name: c.name, unit: "%", min: 0, max: 100, decimals: c.of === "day" ? 0 : 1 }, periodProgress(c.of)); body.firstElementChild.dataset.tick = ""; body.firstElementChild._tick = tick; };
+    let last = ""; const tick = () => { const v = periodProgress(c.of).toFixed(c.of === "day" ? 0 : 1); if (v !== last) { last = v; draw(); } };
+    tick();
+  },
+
   radio(body, c) {
     body.innerHTML = `<div class="radio" data-tick><img class="radio-img" alt="" referrerpolicy="no-referrer" hidden>
       <div class="radio-info"><b class="radio-name">${esc(c.name)}</b><span class="radio-song">Loading…</span></div>
@@ -216,7 +274,7 @@ const LOCAL = {
 
 /* One clock for every clock and pomodoro on screen. The first running pomodoro shows its time in the tab title. */
 const BASE_TITLE = document.title;
-setInterval(() => {
+const LOCAL_TICK = setInterval(() => {
   let title = "";
   $$("#grid [data-tick], #cfgPreview [data-tick]").forEach(el => { el._tick?.(); if (!title && el.dataset.title && el.closest("#grid")) title = el.dataset.title; });
   document.title = title ? `${title} · Beyond` : BASE_TITLE;

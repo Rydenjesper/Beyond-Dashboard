@@ -17,9 +17,15 @@ $("#config").addEventListener("close", () => cfgCtrl?.abort());
 document.addEventListener("visibilitychange", () => { if (!document.hidden) rt.forEach((r, id) => { if (r.updated && Date.now() - r.updated > (r.cfg.refresh || 300) * 1000) load(id); }); });
 
 pruneLocal(boards.boards); pruneHistory(boards.boards);
+/* Installable app: the service worker only runs on https (or localhost), never from file://. */
+if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) navigator.serviceWorker.register("sw.js").catch(() => {});
+addEventListener("online", () => rt.forEach((r, id) => { if (r.stale || r.error) load(id); }));
+addEventListener("offline", () => rt.forEach((r, id) => paint(id)));
+
 (async function boot() {
   const m = location.hash.match(/#d=(.+)$/);
   if (m) { try { enterPreview(hydrateShared(await decode(m[1]))); return; } catch { toast("Couldn't open that share link"); } }
   renderAll();
+  if (kioskFromUrl()) return;
   if (!savedState && !store.get("beyond.onboarded", false)) openWelcome();   // first visit: the starter board waits behind the welcome
 })();

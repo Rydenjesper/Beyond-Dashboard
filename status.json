@@ -1,0 +1,395 @@
+{
+ "checked": "2026-10-16T17:28:32.184Z",
+ "urls": 246,
+ "failing": 0,
+ "results": {
+  "elpris": {
+   "ok": true,
+   "of": 4
+  },
+  "polisen": {
+   "ok": true,
+   "of": 1
+  },
+  "weather": {
+   "ok": true,
+   "of": 10
+  },
+  "air": {
+   "ok": true,
+   "of": 7
+  },
+  "ocean": {
+   "ok": true,
+   "of": 4
+  },
+  "sun": {
+   "ok": true,
+   "of": 1
+  },
+  "iss": {
+   "ok": true,
+   "of": 1
+  },
+  "crypto": {
+   "ok": true,
+   "of": 4
+  },
+  "fx": {
+   "ok": true,
+   "of": 1
+  },
+  "status": {
+   "ok": true,
+   "of": 14
+  },
+  "forecast": {
+   "ok": true,
+   "of": 4
+  },
+  "coin_chart": {
+   "ok": true,
+   "of": 24
+  },
+  "wiki_views": {
+   "ok": true,
+   "of": 8
+  },
+  "rss": {
+   "ok": true,
+   "of": 5
+  },
+  "espn": {
+   "ok": true,
+   "of": 9
+  },
+  "bluesky": {
+   "ok": true,
+   "of": 1
+  },
+  "ecb": {
+   "ok": true,
+   "of": 6
+  },
+  "eurostat": {
+   "ok": true,
+   "of": 12
+  },
+  "svk": {
+   "ok": true,
+   "of": 5
+  },
+  "smhi_warn": {
+   "ok": true,
+   "of": 1
+  },
+  "metal": {
+   "ok": true,
+   "of": 3
+  },
+  "aurora": {
+   "ok": true,
+   "of": 2
+  },
+  "iss_far": {
+   "ok": true,
+   "of": 1
+  },
+  "vs_pole": {
+   "ok": true,
+   "of": 2
+  },
+  "el_cheap": {
+   "ok": true,
+   "of": 4
+  },
+  "btc_mood": {
+   "ok": true,
+   "of": 4
+  },
+  "umbrella": {
+   "ok": true,
+   "of": 2
+  },
+  "brief": {
+   "ok": true,
+   "of": 7
+  },
+  "sl": {
+   "ok": true,
+   "of": 18
+  },
+  "nasa_neo": {
+   "ok": true,
+   "of": 1
+  },
+  "github": {
+   "ok": true,
+   "of": 1
+  },
+  "npm": {
+   "ok": true,
+   "of": 3
+  },
+  "hn": {
+   "ok": true,
+   "of": 3
+  },
+  "quakes": {
+   "ok": true,
+   "of": 16
+  },
+  "launches": {
+   "ok": true,
+   "of": 7
+  },
+  "chess": {
+   "ok": true,
+   "of": 2
+  },
+  "f1": {
+   "ok": true,
+   "of": 2
+  },
+  "holidays": {
+   "ok": true,
+   "of": 1
+  },
+  "wiki": {
+   "ok": true,
+   "of": 8
+  },
+  "bp_people_in_space": {
+   "ok": true,
+   "of": 1
+  },
+  "bp_kp_index": {
+   "ok": true,
+   "of": 1
+  },
+  "bp_solar_wind": {
+   "ok": true,
+   "of": 1
+  },
+  "bp_neo_today": {
+   "ok": true,
+   "of": 1
+  },
+  "bp_uk_carbon": {
+   "ok": true,
+   "of": 1
+  },
+  "bp_btc_fees": {
+   "ok": true,
+   "of": 1
+  },
+  "bp_btc_paprika": {
+   "ok": true,
+   "of": 1
+  },
+  "bp_btc_sek_bci": {
+   "ok": true,
+   "of": 1
+  },
+  "bp_us_tbill": {
+   "ok": true,
+   "of": 1
+  },
+  "bp_us_tbill_chart": {
+   "ok": true,
+   "of": 1
+  },
+  "bp_meme": {
+   "ok": true,
+   "of": 1
+  },
+  "bp_f1_next": {
+   "ok": true,
+   "of": 1
+  },
+  "bp_fortnite": {
+   "ok": true,
+   "of": 1
+  },
+  "bp_warframe": {
+   "ok": true,
+   "of": 1
+  },
+  "bp_mastodon_trends": {
+   "ok": true,
+   "of": 1
+  },
+  "bp_eonet": {
+   "ok": true,
+   "of": 1
+  },
+  "bp_solar_flare": {
+   "ok": true,
+   "of": 1
+  },
+  "bp_geek_joke": {
+   "ok": true,
+   "of": 1
+  },
+  "bp_rick_morty": {
+   "ok": true,
+   "of": 1
+  },
+  "bp_cataas": {
+   "ok": true,
+   "of": 1
+  },
+  "bp_picsum": {
+   "ok": true,
+   "of": 1
+  },
+  "bp_btc_height": {
+   "ok": true,
+   "of": 1
+  },
+  "bp_fear_greed": {
+   "ok": true,
+   "of": 1
+  },
+  "bp_wiki_mostread": {
+   "ok": true,
+   "of": 1
+  },
+  "bp_useless_fact": {
+   "ok": true,
+   "of": 1
+  },
+  "bp_agify": {
+   "ok": true,
+   "of": 1
+  },
+  "bp_my_ip": {
+   "ok": true,
+   "of": 1
+  },
+  "bp_corp_bs": {
+   "ok": true,
+   "of": 1
+  },
+  "bp_cat_fact": {
+   "ok": true,
+   "of": 1
+  },
+  "bp_meow_fact": {
+   "ok": true,
+   "of": 1
+  },
+  "bp_chuck": {
+   "ok": true,
+   "of": 1
+  },
+  "bp_kanye": {
+   "ok": true,
+   "of": 1
+  },
+  "bp_advice": {
+   "ok": true,
+   "of": 1
+  },
+  "bp_dad_joke": {
+   "ok": true,
+   "of": 1
+  },
+  "bp_prog_joke": {
+   "ok": true,
+   "of": 1
+  },
+  "bp_random_person": {
+   "ok": true,
+   "of": 1
+  },
+  "bp_wiki_potd": {
+   "ok": true,
+   "of": 1
+  },
+  "bp_dog": {
+   "ok": true,
+   "of": 1
+  },
+  "bp_fox": {
+   "ok": true,
+   "of": 1
+  },
+  "bp_cat": {
+   "ok": true,
+   "of": 1
+  },
+  "bp_pokemon": {
+   "ok": true,
+   "of": 1
+  },
+  "bp_art": {
+   "ok": true,
+   "of": 1
+  },
+  "bp_space_news": {
+   "ok": true,
+   "of": 1
+  },
+  "bp_volcanoes": {
+   "ok": true,
+   "of": 1
+  },
+  "bp_nyc_tide": {
+   "ok": true,
+   "of": 1
+  },
+  "bp_potomac": {
+   "ok": true,
+   "of": 1
+  },
+  "bp_riksdagen": {
+   "ok": true,
+   "of": 1
+  },
+  "bp_tv_se": {
+   "ok": true,
+   "of": 1
+  },
+  "bp_bundesliga": {
+   "ok": true,
+   "of": 1
+  },
+  "bp_trending_books": {
+   "ok": true,
+   "of": 1
+  },
+  "bp_trivia": {
+   "ok": true,
+   "of": 1
+  },
+  "bp_quote": {
+   "ok": true,
+   "of": 1
+  },
+  "bp_dev_joke": {
+   "ok": true,
+   "of": 1
+  },
+  "bp_tube": {
+   "ok": true,
+   "of": 1
+  },
+  "bp_gh_firehose": {
+   "ok": true,
+   "of": 1
+  },
+  "bp_devto": {
+   "ok": true,
+   "of": 1
+  },
+  "bp_trending_coins": {
+   "ok": true,
+   "of": 1
+  },
+  "bp_iss_raw": {
+   "ok": true,
+   "of": 1
+  }
+ }
+}

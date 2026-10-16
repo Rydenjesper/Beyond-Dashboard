@@ -267,6 +267,17 @@ button { cursor: pointer; }
 .radio.wait .radio-play { animation: pulse 1s ease-in-out infinite; }
 @keyframes pulse { 50% { opacity: .55; } }
 .radio-play:disabled { opacity: .4; }
+/* Local: countdown, moon */
+.cdown { height: 100%; display: flex; flex-direction: column; justify-content: center; }
+.cdown-n { font: 700 min(42cqh, 16cqw)/1 var(--f-display); letter-spacing: -.02em; }
+.cdown-l { font-size: 13px; color: var(--muted); margin-top: 4px; }
+.moon { height: 100%; display: flex; align-items: center; gap: 12px; }
+.moon svg { height: min(64px, 80cqh); aspect-ratio: 1; flex: none; }
+.moon-dark { fill: var(--panel-2); stroke: var(--line); }
+.moon-lit { fill: #E9E4D2; }
+.moon > div { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.moon-name { font-weight: 600; font-size: 14px; }
+.moon-sub { font-size: 12.5px; color: var(--muted); }
 /* Local: note */
 .note-view { height: 100%; overflow: auto; font-size: 13.5px; line-height: 1.5; cursor: text; scrollbar-width: thin; border-radius: 6px; }
 .note-view:focus-visible { outline: 2px solid var(--accent); }
@@ -417,6 +428,12 @@ dialog[open] { display: flex; flex-direction: column; }
 .src-name label { font-size: 12.5px; color: var(--muted); white-space: nowrap; }
 .src-name input { width: 140px; }
 #e_combine { padding-left: 0; font-size: 12.5px; }
+/* Wall display */
+body.kiosk .bar, body.kiosk .w-act, body.kiosk .banner, body.kiosk .grid-stack-item > .ui-resizable-handle { display: none !important; }
+body.kiosk .w-h { cursor: default; }
+body.kiosk { padding-top: 12px; }
+.kiosk-exit { position: fixed; right: 16px; bottom: 16px; z-index: 50; height: 40px; padding: 0 16px; border-radius: 20px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); font-weight: 600; box-shadow: 0 6px 20px rgb(0 0 0 / .25); }
+.bp-warn { display: inline-block; margin-top: 6px; font-size: 11.5px; font-weight: 600; color: var(--warn); }
 .check { display: flex; align-items: center; gap: 8px; font-size: 14px; margin: 4px 0 10px; }
 .share-out { width: 100%; height: 92px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel-2); padding: 10px 12px; font: 400 12px/1.5 var(--f-mono); resize: none; word-break: break-all; }
 .param .hint { display: block; margin-top: 6px; color: var(--faint); font-size: 12px; }

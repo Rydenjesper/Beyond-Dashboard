@@ -23,7 +23,7 @@
     { sources: { gold: { url, path }, fx: { url, path } }, calc: { kg: "gold * 32.15" }, value: "kg * fx",
       okIf, warnIf (beacon color), words: { ok, warn, bad } }. Expressions: js/engine.js (evalExpr), no eval.
 
-  Local widgets (no API): a module whose build() returns { local: "todo" | "note" | "pomodoro" | "clock" | "radio" }.
+  Local widgets (no API): a module whose build() returns { local: "todo" | "note" | "pomodoro" | "clock" | "radio" | "countdown" | "moon" | "progress" }.
     They are drawn by js/local.js and keep their content in beyond.local.v1, outside the board.
 
   Parameter types: choice | text | place | secret | search
@@ -260,6 +260,47 @@ window.MODULES = [
       url: `https://wikimedia.org/api/rest_v1/metrics/pageviews/per-article/${p.lang}.wikipedia/all-access/user/${encodeURIComponent(p.article.trim().replace(/ /g, "_"))}/daily/{ymd:-${p.days}}/{ymd:-1}`,
       path: "items", xField: "timestamp", yFields: [{ y: "views", label: "Views", unit: "" }], chart: "area", mark: "max", xFormat: "date" }) },
 
+  /* ── News, sport, social */
+  { id: "rss", name: "News feed (RSS)", category: "knowledge",
+    desc: "Headlines from any RSS or Atom feed. Ekot and the New York Times work as is; most other sites need your own proxy.",
+    params: [
+      { key: "feed", label: "Feed", type: "choice", default: "https://api.sr.se/api/rss/program/83", options: [
+        { value: "https://api.sr.se/api/rss/program/83", label: "Ekot" },
+        { value: "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml", label: "NYT front page" },
+        { value: "https://rss.nytimes.com/services/xml/rss/nyt/World.xml", label: "NYT world" },
+        { value: "https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml", label: "NYT tech" },
+        { value: "https://rss.nytimes.com/services/xml/rss/nyt/Science.xml", label: "NYT science" },
+        { value: "custom", label: "Other feed" } ] },
+      { key: "url", label: "Feed URL (for Other feed)", type: "text", default: "", placeholder: "https://example.com/feed.xml" },
+      { key: "proxy", label: "CORS proxy", type: "secret", optional: true, store: "cors_proxy", placeholder: "https://your-proxy.workers.dev", help: "https://github.com/Rydenjesper/Beyond-Dashboard#rss-feeds-and-the-proxy" },
+    ],
+    displays: ["list", "ticker", "text"],
+    build: (p, s, display) => {
+      const feed = p.feed === "custom" ? (/^https:\/\//.test(p.url.trim()) ? p.url.trim() : "https://api.sr.se/api/rss/program/83") : p.feed;
+      const url = p.proxy && /^https:\/\//.test(p.proxy) ? `${p.proxy.replace(/\/+$/, "")}/?url=${encodeURIComponent(feed)}` : feed;
+      return { name: p.feed === "custom" ? host(feed) || "News" : s.feed.label, url, refresh: 900, proxyHint: true,
+        ...(display === "text" ? { path: "items[0].title" } : { path: "items", item: "{title}" }) };
+    } },
+
+  { id: "espn", name: "Live scores", category: "sport",
+    desc: "Today's matches and results from ESPN: Allsvenskan, Premier League, Champions League, NHL, NBA, NFL and more.",
+    params: [{ key: "league", label: "League", type: "choice", default: "soccer/swe.1", options: [
+      ["soccer/swe.1", "Allsvenskan"], ["soccer/eng.1", "Premier League"], ["soccer/esp.1", "La Liga"], ["soccer/ger.1", "Bundesliga"], ["soccer/ita.1", "Serie A"],
+      ["soccer/uefa.champions", "Champions League"], ["hockey/nhl", "NHL"], ["basketball/nba", "NBA"], ["football/nfl", "NFL"]].map(([value, label]) => ({ value, label })) }],
+    displays: ["list", "ticker"],
+    build: (p, s) => ({ name: s.league.label, url: `https://site.api.espn.com/apis/site/v2/sports/${p.league}/scoreboard`, refresh: 120,
+      transform: d => ({ games: (d.events || []).map(e => { const c = e.competitions?.[0] || {}, t = side => c.competitors?.find(x => x.homeAway === side) || {}, h = t("home"), a = t("away"), st = e.status?.type || {};
+        return { line: st.state === "pre" ? `${h.team?.shortDisplayName} – ${a.team?.shortDisplayName}` : `${h.team?.shortDisplayName} ${h.score}–${a.score} ${a.team?.shortDisplayName}`,
+          status: st.state === "pre" ? fmt(e.date, { format: "time" }) : st.shortDetail || "" }; }) }),
+      path: "games", item: "{line} · {status}" }) },
+
+  { id: "bluesky", name: "Bluesky followers", category: "fun",
+    desc: "Follower count for any Bluesky account, with its history over time.",
+    params: [{ key: "handle", label: "Handle", type: "text", default: "bsky.app", placeholder: "name.bsky.social" }],
+    displays: ["stat"],
+    build: p => { const h = p.handle.trim().replace(/^@/, "");
+      return { name: `@${h}`, url: `https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=${encodeURIComponent(h)}`, path: "followersCount", format: "compact", unit: "followers", refresh: 1800 }; } },
+
   /* ── Economy */
   { id: "ecb", name: "ECB interest rate", category: "money",
     desc: "The European Central Bank's key rates, now or over the last two years.",
@@ -448,6 +489,18 @@ window.MODULES = [
       { key: "brk", label: "Break", type: "choice", default: "5", options: ["3", "5", "10", "15"].map(v => ({ value: v, label: `${v} min` })) },
     ],
     displays: ["local"], build: p => ({ name: "Pomodoro", local: "pomodoro", work: +p.work, brk: +p.brk, size: [2, 2] }) },
+  { id: "countdown", name: "Countdown", category: "personal", desc: "Days left until something you're looking forward to.",
+    params: [
+      { key: "title", label: "Until", type: "text", default: "Christmas Eve", placeholder: "Vacation, launch day…" },
+      { key: "date", label: "Date", type: "text", default: "12-24", placeholder: "2026-07-01, or 12-24 for every year" },
+    ],
+    displays: ["local"], build: p => ({ name: p.title || "Countdown", local: "countdown", date: String(p.date || "").trim(), size: [2, 1] }) },
+  { id: "moon", name: "Moon phase", category: "personal", desc: "Tonight's moon, worked out on your device. No API needed.",
+    params: [], displays: ["local"], build: () => ({ name: "Moon", local: "moon", size: [2, 1] }) },
+  { id: "progress", name: "Time passing", category: "personal", desc: "How much of the year, month, week or day has gone.",
+    params: [{ key: "of", label: "Of the", type: "choice", default: "year", options: [
+      { value: "year", label: "Year" }, { value: "month", label: "Month" }, { value: "week", label: "Week" }, { value: "day", label: "Day" } ] }],
+    displays: ["local"], build: (p, s) => ({ name: `${s.of.label} so far`, local: "progress", of: p.of, size: [2, 2] }) },
   { id: "clock", name: "Clock", category: "personal", desc: "Your time, plus any other time zones you care about.",
     params: [
       { key: "zones", label: "Other time zones", type: "text", default: "America/New_York, Asia/Tokyo", placeholder: "Europe/London, America/Los_Angeles" },
@@ -690,6 +743,30 @@ window.BLUEPRINTS = [
   { id: "bp_us_tbill_chart", name: "US Treasury bill rate, 2 years", desc: "Monthly average rate on US Treasury bills.", category: "money",
     url: "https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v2/accounting/od/avg_interest_rates?sort=-record_date&page%5Bsize%5D=24&filter=security_desc:eq:Treasury%20Bills",
     path: "data", xField: "record_date", yFields: [{ y: "avg_interest_rate_amt", label: "Rate", unit: "%" }], chart: "line", xFormat: "month", decimals: 2, display: "chart", refresh: 43200 },
+  { id: "bp_meme", name: "Random meme", desc: "A fresh meme from Reddit's meme subreddits.", category: "images",
+    url: "https://meme-api.com/gimme", path: "url", caption: "title", display: "image", refresh: 600 },
+  { id: "bp_f1_next", name: "Next F1 race", desc: "Countdown to the next Formula 1 Grand Prix.", category: "sport",
+    url: "https://api.jolpi.ca/ergast/f1/current/next.json", display: "text", refresh: 21600,
+    transform: d => { const r = d.MRData?.RaceTable?.Races?.[0] || {}; return { name: r.raceName, place: r.Circuit?.Location?.locality, when: `${r.date}T${r.time || "12:00:00Z"}` }; },
+    path: "{name}, {place} · {when|countdown}" },
+  { id: "bp_fortnite", name: "Fortnite news", desc: "What's new in Battle Royale right now.", category: "fun",
+    url: "https://fortnite-api.com/v2/news/br", path: "data.motds", item: "{title}", display: "list", refresh: 3600 },
+  { id: "bp_warframe", name: "Warframe void fissures", desc: "Open fissures on PC and when they close.", category: "fun",
+    url: "https://api.warframestat.us/pc/fissures", path: "", item: "{tier} {missionType} · {node} · {expiry|countdown}", display: "list", refresh: 300 },
+  { id: "bp_mastodon_trends", name: "Trending on Mastodon", desc: "Hashtags people on mastodon.social are using today.", category: "fun",
+    url: "https://mastodon.social/api/v1/trends/tags", path: "", item: "#{name} · {history[0].accounts} people", display: "list", refresh: 1800 },
+  { id: "bp_eonet", name: "Natural events now", desc: "Wildfires, storms and volcanoes NASA is tracking right now.", category: "earth",
+    url: "https://eonet.gsfc.nasa.gov/api/v3/events?status=open&limit=20", path: "events", item: "{title} · {categories[0].title}", display: "list", refresh: 3600 },
+  { id: "bp_solar_flare", name: "Solar X-ray flare", desc: "The Sun's current X-ray class: A and B are calm, M and X are flares.", category: "space",
+    url: "https://services.swpc.noaa.gov/json/goes/primary/xray-flares-latest.json", path: "[0].current_class", display: "text", refresh: 600 },
+  { id: "bp_geek_joke", name: "Geek joke", desc: "Programmer humor, of a sort.", category: "fun",
+    url: "https://geek-jokes.sameerkumar.website/api?format=json", path: "joke", display: "text", refresh: 600 },
+  { id: "bp_rick_morty", name: "Rick and Morty character", desc: "A random character from the multiverse.", category: "images",
+    url: "https://rickandmortyapi.com/api/character/{rand:1-826}", path: "image", caption: "name", display: "image", refresh: 900 },
+  { id: "bp_cataas", name: "Cat as a service", desc: "A random cat photo.", category: "images",
+    url: "https://cataas.com/cat?json=true", path: "url", display: "image", refresh: 900 },
+  { id: "bp_picsum", name: "Random photo", desc: "A random photograph from Lorem Picsum.", category: "images",
+    url: "https://picsum.photos/v2/list?page={rand:1-100}&limit=1", path: "https://picsum.photos/id/{[0].id}/800/500", caption: "[0].author", display: "image", refresh: 900 },
   { id: "bp_btc_height", name: "Bitcoin block height", desc: "Blocks mined since 2009.", category: "money",
     url: "https://mempool.space/api/blocks/tip/height", path: "", display: "stat", decimals: 0, refresh: 120 },
   { id: "bp_fear_greed", name: "Crypto fear & greed", desc: "Market mood from 0 (panic) to 100 (euphoria).", category: "money",

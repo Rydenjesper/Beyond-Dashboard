@@ -3,13 +3,37 @@ name: CI
 on:
   push:
   pull_request:
+  schedule:
+    - cron: "17 3 * * *"   # every night: is every API in the catalog still answering?
+  workflow_dispatch:
 
 jobs:
   test:
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: node --test
+      - run: node --test --test-timeout=20000
+
+  health:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/health.js
+      - name: Commit status.json if anything changed
+        run: |
+          git config user.name "beyond-health-check"
+          git config user.email "actions@users.noreply.github.com"
+          git add status.json
+          if git diff --cached --quiet -I '"checked"'; then echo "No change"; exit 0; fi
+          git commit -m "Nightly catalog health check"
+          git push

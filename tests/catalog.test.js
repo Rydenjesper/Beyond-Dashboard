@@ -7,7 +7,7 @@ const MOD = Object.fromEntries(MODULES.map(m => [m.id, m]));
 
 function checkCfg(c, where) {
   assert.equal(typeof c.name, "string", `${where}: name`);
-  if (c.local) { assert.ok(["todo", "note", "pomodoro", "clock", "radio"].includes(c.local), `${where}: local kind`); assert.equal(c.url, undefined, `${where}: local widgets call no API`); return; }
+  if (c.local) { assert.ok(["todo", "note", "pomodoro", "clock", "radio", "countdown", "moon", "progress"].includes(c.local), `${where}: local kind`); assert.equal(c.url, undefined, `${where}: local widgets call no API`); return; }
   const urls = cfgUrls(c);
   assert.ok(urls.length, `${where}: no url or sources`);
   urls.forEach(u => assert.match(u, /^https:\/\//, `${where}: url must be https (http never works on GitHub Pages)`));

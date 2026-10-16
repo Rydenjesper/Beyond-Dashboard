@@ -250,6 +250,22 @@ function combine(c, values) {
   return { env, value: c.value && c.template ? tmpl(c.template, { ...env, value }) : value, level };
 }
 
+/* ═══ Sun: sunrise and sunset from the standard sunrise equation (accurate to a minute or two) ═══ */
+function sunTimes(lat, lon, t = Date.now()) {
+  const rad = Math.PI / 180, day = new Date(t);
+  const noon = Date.UTC(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate(), 12) - lon / 15 * 3600e3;
+  const n = Math.round(noon / 864e5 + 2440587.5 - 2451545 + 0.0008), J = n - lon / 360;
+  const M = (357.5291 + 0.98560028 * J) % 360, C = 1.9148 * Math.sin(M * rad) + 0.02 * Math.sin(2 * M * rad) + 0.0003 * Math.sin(3 * M * rad);
+  const L = (M + C + 180 + 102.9372) % 360, transit = 2451545 + J + 0.0053 * Math.sin(M * rad) - 0.0069 * Math.sin(2 * L * rad);
+  const dec = Math.asin(Math.sin(L * rad) * Math.sin(23.4397 * rad));
+  const cosW = (Math.sin(-0.833 * rad) - Math.sin(lat * rad) * Math.sin(dec)) / (Math.cos(lat * rad) * Math.cos(dec));
+  if (cosW < -1) return { polar: "day" };
+  if (cosW > 1) return { polar: "night" };
+  const w = Math.acos(cosW) / rad / 360, ms = j => (j - 2440587.5) * 864e5;
+  return { rise: ms(transit - w), set: ms(transit + w) };
+}
+const isNight = (lat, lon, t = Date.now()) => { const s = sunTimes(lat, lon, t); return s.polar ? s.polar === "night" : t < s.rise || t > s.set; };
+
 /* ═══ Catalog hosts: every domain the built-in catalog can call ═══ */
 function catalogHosts(modules, bank) {
   const hs = new Set(), add = c => cfgUrls(c).forEach(u => { const h = host(u); if (h) hs.add(h); });
@@ -393,4 +409,4 @@ function migrateBoards(saved, old) {
   return b ? { active: b.id, boards: [b] } : null;
 }
 
-if (typeof module !== "undefined") module.exports = { esc, maskSecrets, uid, pad, clamp, clone, store, host, debounce, WMO, fillPlaceholders, pickNow, pick, unescapeHTML, isTemplate, tmpl, resolve, countdown, fmtDuration, fmt, timeAgo, modDefaults, modSelected, modDisplays, buildCfg, getSecret, setSecret, secretParams, catalogHosts, encode, decode, hydrate, shareable, migrateBoards, compileExpr, evalExpr, combine, cfgUrls, sanitizeCustom, sanitizeParams, SHARE_MAX };
+if (typeof module !== "undefined") module.exports = { esc, maskSecrets, uid, pad, clamp, clone, store, host, debounce, WMO, fillPlaceholders, pickNow, pick, unescapeHTML, isTemplate, tmpl, resolve, countdown, fmtDuration, fmt, timeAgo, modDefaults, modSelected, modDisplays, buildCfg, getSecret, setSecret, secretParams, catalogHosts, encode, decode, hydrate, shareable, migrateBoards, compileExpr, evalExpr, combine, cfgUrls, sunTimes, isNight, sanitizeCustom, sanitizeParams, SHARE_MAX };

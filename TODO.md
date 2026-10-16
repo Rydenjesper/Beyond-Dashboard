@@ -26,7 +26,7 @@ Läs hela filen och `README.md` innan du börjar. Bocka av (`[x]`) när en punkt
 **Hårda regler:**
 1. **Inget byggsteg och ingen backend.** Det ska gå att öppna `index.html` direkt. Använd därför klassiska `<script>`-taggar, inte ES-moduler (de blockeras på `file://`).
 2. **Varje nytt API ska testas från en riktig webbläsare innan det läggs in.** Kör `fetch(url)` i konsolen på en vanlig https-sida (t.ex. example.com). Får du ett svar fungerar CORS. `http://`-adresser fungerar aldrig på GitHub Pages.
-3. **Bumpa cache-versionen** (`?v=3` → `?v=4` osv. på `blueprints.js`, `gridstack-all.js` och `gridstack.min.css` i `index.html`) vid varje release, annars ser besökare gammal kod i upp till 10 minuter.
+3. **Bumpa cache-versionen** (`?v=5` → `?v=6` osv. på alla `<script>`/`<link>` i `index.html`, **och `VERSION` i `sw.js`**) vid varje release. Annars ser besökare gammal kod, och med service workern kan den ligga kvar tills versionen ändras.
 4. **Nya moduler ska fungera i välkomstflödet** (`INTERESTS` + `recipes()` i `index.html`) om de passar ett intresse.
 5. **Bryt inte gamla sparade boards.** Byter du lagringsformat: migrera från den gamla nyckeln, radera inte.
 6. UI-texten är på engelska.
@@ -39,7 +39,7 @@ Läs hela filen och `README.md` innan du börjar. Bocka av (`[x]`) när en punkt
 - [x] **Delad fetch-cache.** Flera widgets mot samma URL (t.ex. ISS, Open-Meteo, elpris) ska dela ett anrop per uppdateringsintervall. Gör en `Map<url, {promise, at}>` i `fetchData()`. Minskar rate limiting rejält.
 - [x] **Nyckelfält i moduler: param-typ `secret`.** Sparas separat i `localStorage` (`beyond.keys`), aldrig i boarden och aldrig i delningslänkar. Vid delning ska mottagaren se "Lägg till din egen nyckel" i widgeten i stället för ett fel. Behövs för Västtrafik, TMDB, OpenWeather, Alpha Vantage och egen NASA-nyckel. *(Klart: modulen `nasa_neo` är första användaren, med `optional: true` och DEMO_KEY som reserv.)*
 - [x] **Export/import av allt** (boards, todos, nycklar valfritt) som JSON-fil. *(Klart: Share-dialogen → Backup. Tar med alla `beyond.*`-nycklar automatiskt, så nya lagringsnycklar för todos/boards följer med utan ändring.)* Viktigt när vi lägger till todos och flera dashboards, eftersom `localStorage` kan rensas av webbläsaren.
-- [ ] **Hälsokoll av katalogen i CI.** GitHub Action som kör varje natt, anropar alla `url` i `blueprints.js` med headern `Origin: https://rydenjesper.github.io` och kontrollerar status 200 och att `Access-Control-Allow-Origin` finns i svaret. Skriv resultatet till `status.json` i repot. Visa en varningsikon i banken på widgets som failar.
+- [x] **Hälsokoll av katalogen i CI.** *(`scripts/health.js`, jobbet `health` i `ci.yml` kör 03:17 varje natt och manuellt. 429 räknas som "upptagen", inte trasig. Första körningen: 246 URL:er, 0 fel.)* GitHub Action som kör varje natt, anropar alla `url` i `blueprints.js` med headern `Origin: https://rydenjesper.github.io` och kontrollerar status 200 och att `Access-Control-Allow-Origin` finns i svaret. Skriv resultatet till `status.json` i repot. Visa en varningsikon i banken på widgets som failar.
 
 ---
 
@@ -49,15 +49,15 @@ Testad lista finns i Google Sheets: "API-lista: fungerar". Ta raderna markerade 
 
 ### 2a. Ny kategori: Trafik
 - [x] **SL-avgångar** (modul). Hållplatssök: `https://transport.integration.sl.se/v1/sites?expand=false` (6 500 hållplatser, cacha i `localStorage`). Avgångar: `https://transport.integration.sl.se/v1/sites/{id}/departures` → `departures[]` med `line.designation`, `destination`, `display` ("3 min"), `expected`, `deviations`. Parametrar: hållplats, filter på linje/transportslag, riktning. Display: lista "{line} {destination} {display}". *(Klart: modul `sl` med ny param-typ `search` (hållplatslistan cachas i `beyond.cache.sl_sites`). Inställda avgångar visar "cancelled". Ligger inte i välkomstflödet, eftersom närmaste hållplats skulle kräva hela listan där.)*
-- [ ] **Västtrafik** (modul, kräver egen nyckel). OAuth client credentials: `POST https://ext-api.vasttrafik.se/token` (svarar med CORS). Därefter Planera Resa v4: `https://ext-api.vasttrafik.se/pr/v4/stop-areas/{gid}/departures`. Hållplatssök: `/pr/v4/locations/by-text?q=`. Spara token i minnet, förnya vid 401. **Ej verifierat hela vägen** eftersom vi inte hade någon nyckel. Testa först.
-- [ ] **ResRobot** (alternativ för hela Sverige, kräver gratis Trafiklab-nyckel, svarar med CORS). `https://api.resrobot.se/v2.1/departureBoard?id={id}&format=json&accessId={key}`.
+- [~] **Västtrafik** (modul, kräver egen nyckel). *(Skippad: Jesper vill bara ha API:er utan nycklar, 2026-10-16.)* OAuth client credentials: `POST https://ext-api.vasttrafik.se/token` (svarar med CORS). Därefter Planera Resa v4: `https://ext-api.vasttrafik.se/pr/v4/stop-areas/{gid}/departures`. Hållplatssök: `/pr/v4/locations/by-text?q=`. Spara token i minnet, förnya vid 401. **Ej verifierat hela vägen** eftersom vi inte hade någon nyckel. Testa först.
+- [~] **ResRobot** (alternativ för hela Sverige, kräver gratis Trafiklab-nyckel *(Skippad: Jesper vill bara ha API:er utan nycklar, 2026-10-16.)*, svarar med CORS). `https://api.resrobot.se/v2.1/departureBoard?id={id}&format=json&accessId={key}`.
 - [ ] **London Tube-status** finns redan som blueprint. Lägg den i Trafik.
 
 ### 2b. Radio och nyheter
-- [x] **Sveriges Radio live** (modul, ny displaytyp `audio`). Kanaler: `https://api.sr.se/api/v2/channels?format=json&pagination=false` (52 kanaler, `liveaudio.url`, `image`). Spelas nu: `https://api.sr.se/api/v2/playlists/rightnow?channelid={id}&format=json` → `playlist.song.artist`, `.title`. Widget: kanalbild, play/paus-knapp, låt och artist (uppdatera var 30:e sekund). Uppspelning kräver klick (autoplay blockeras). Bara en kanal åt gången spelar. **Verifiera uppspelning på live-sidan.** *(Byggt som lokal widget `radio` med en delad `<audio>` för hela sidan. Ligger i intresset Sweden. Uppspelningen är inte verifierad med ljud: Chrome startar inte media i den dolda automationsfliken.)*
-- [ ] **Ekot och SR-program som nyhetsflöde.** `https://api.sr.se/api/v2/news?format=json` och SR:s RSS `https://api.sr.se/api/rss/program/{id}` (svarar med CORS).
-- [ ] **RSS-stöd i motorn.** Om svaret är XML: parsa med `DOMParser` till `{items:[{title, link, pubDate, description}]}` för både RSS och Atom. Fungerar direkt för SR och New York Times. **De flesta andra flöden (SVT, GP, BBC, HN, The Verge) blockerar CORS.** Lägg till en valfri inställning "CORS-proxy-URL" (tom som standard) och en färdig Cloudflare Worker på ~20 rader i `proxy/worker.js` + instruktion i README. Utan proxy: visa ett tydligt fel som förklarar varför.
-- [ ] **Spaceflight News** finns redan. **Online Meme** (`https://meme-api.com/gimme` → `url`, `title`, `subreddit`) som bildwidget.
+- [x] **Sveriges Radio live** (modul, ny displaytyp `audio`). Kanaler: `https://api.sr.se/api/v2/channels?format=json&pagination=false` (52 kanaler, `liveaudio.url`, `image`). Spelas nu: `https://api.sr.se/api/v2/playlists/rightnow?channelid={id}&format=json` → `playlist.song.artist`, `.title`. Widget: kanalbild, play/paus-knapp, låt och artist (uppdatera var 30:e sekund). Uppspelning kräver klick (autoplay blockeras). Bara en kanal åt gången spelar. **Verifiera uppspelning på live-sidan.** *(Byggt som lokal widget `radio` med en delad `<audio>` för hela sidan. Ligger i intresset Sweden. Uppspelningen är verifierad av Jesper på live-sidan 2026-10-16.)*
+- [x] **Ekot och SR-program som nyhetsflöde.** *(Ekot via SR:s Atom-flöde i modulen `rss`.)* `https://api.sr.se/api/v2/news?format=json` och SR:s RSS `https://api.sr.se/api/rss/program/{id}` (svarar med CORS).
+- [x] **RSS-stöd i motorn.** *(`parseFeed` i `js/app.js`, `proxy/worker.js` med test, och en README-sektion. Proxyn sparas som en secret-param och följer aldrig med i länkar. Utan proxy säger widgeten varför.)* Om svaret är XML: parsa med `DOMParser` till `{items:[{title, link, pubDate, description}]}` för både RSS och Atom. Fungerar direkt för SR och New York Times. **De flesta andra flöden (SVT, GP, BBC, HN, The Verge) blockerar CORS.** Lägg till en valfri inställning "CORS-proxy-URL" (tom som standard) och en färdig Cloudflare Worker på ~20 rader i `proxy/worker.js` + instruktion i README. Utan proxy: visa ett tydligt fel som förklarar varför.
+- [x] **Spaceflight News** finns redan. *(Meme-widget tillagd.)* **Online Meme** (`https://meme-api.com/gimme` → `url`, `title`, `subreddit`) som bildwidget.
 
 ### 2c. Ekonomi
 - [x] **Metaller live:** `https://api.gold-api.com/price/{XAU|XAG|XPT|XPD|HG}` → `price` (USD). Modul med metallval och valuta (räkna om via Frankfurter). *(Modulen `metal`, kombinerad med open.er-api.com. Koppar (HG) är utelämnad, eftersom priset anges per pund.)*
@@ -74,18 +74,18 @@ Testad lista finns i Google Sheets: "API-lista: fungerar". Ta raderna markerade 
 - [x] **wttr.in** som extra väderkälla: `https://wttr.in/{stad}?format=j1`.
 
 ### 2e. Sport och spel
-- [ ] **ESPN live-resultat** (modul, inofficiellt API): `https://site.api.espn.com/apis/site/v2/sports/{sport}/{liga}/scoreboard`. Ligor: `soccer/swe.1` (Allsvenskan), `soccer/eng.1`, `hockey/nhl`, `basketball/nba` m.fl. Visa "{hemmalag} {mål}–{mål} {bortalag} · {status}".
-- [ ] **Nästa F1-race** med nedräkning: `https://api.jolpi.ca/ergast/f1/current/next.json`.
-- [ ] **TheSportsDB** (gratisnyckel `3` i URL:en): tabeller och lagloggor.
-- [ ] **Fortnite-nyheter** (`https://fortnite-api.com/v2/news/br`), **Warframe** (`https://api.warframestat.us/pc/fissures`).
+- [x] **ESPN live-resultat** *(Modulen `espn`. SHL finns inte hos ESPN.)* (modul, inofficiellt API): `https://site.api.espn.com/apis/site/v2/sports/{sport}/{liga}/scoreboard`. Ligor: `soccer/swe.1` (Allsvenskan), `soccer/eng.1`, `hockey/nhl`, `basketball/nba` m.fl. Visa "{hemmalag} {mål}–{mål} {bortalag} · {status}".
+- [x] **Nästa F1-race** med nedräkning: `https://api.jolpi.ca/ergast/f1/current/next.json`.
+- [~] **TheSportsDB** (gratisnyckel `3` i URL:en): tabeller och lagloggor. *(Skippad: kräver nyckel i URL:en.)*
+- [x] **Fortnite-nyheter** (`https://fortnite-api.com/v2/news/br`), **Warframe** (`https://api.warframestat.us/pc/fissures`).
 
 ### 2f. Socialt och övrigt
-- [ ] **Bluesky följare:** `https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor={handle}` → `followersCount`. Modul med handle-param. Stat med sparkline.
-- [ ] **Mastodon trender:** `https://mastodon.social/api/v1/trends/tags`.
-- [ ] **Wikipedia-sidvisningar** (hype-mätare): `https://wikimedia.org/api/rest_v1/metrics/pageviews/per-article/en.wikipedia/all-access/user/{Artikel}/daily/{start}/{slut}`. Utmärkt för diagram.
-- [ ] **NASA EONET** (pågående bränder, stormar, vulkaner): `https://eonet.gsfc.nasa.gov/api/v3/events?status=open&limit=20`.
-- [ ] **Solutbrott:** `https://services.swpc.noaa.gov/json/goes/primary/xray-flares-latest.json`.
-- [ ] Citat/skämt/bilder från sheetet: Breaking Bad, Game of Thrones, AnimeChan, Geek Jokes, Rick and Morty, Cataas, Picsum, DiceBear, RoboHash.
+- [x] **Bluesky följare:** `https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor={handle}` → `followersCount`. Modul med handle-param. Stat med sparkline.
+- [x] **Mastodon trender:** `https://mastodon.social/api/v1/trends/tags`.
+- [x] **Wikipedia-sidvisningar** *(v1.2, modulen `wiki_views`.)* (hype-mätare): `https://wikimedia.org/api/rest_v1/metrics/pageviews/per-article/en.wikipedia/all-access/user/{Artikel}/daily/{start}/{slut}`. Utmärkt för diagram.
+- [x] **NASA EONET** (pågående bränder, stormar, vulkaner): `https://eonet.gsfc.nasa.gov/api/v3/events?status=open&limit=20`.
+- [x] **Solutbrott:** `https://services.swpc.noaa.gov/json/goes/primary/xray-flares-latest.json`.
+- [x] Citat/skämt/bilder från sheetet: Breaking Bad, Game of Thrones, AnimeChan, Geek Jokes, Rick and Morty, Cataas, Picsum, DiceBear, RoboHash. *(Geek Jokes, Rick and Morty, Cataas och Picsum är tillagda. Breaking Bad och GoT svarade 429, AnimeChan 404 och Robohash inte alls, så de är skippade. DiceBear ger bara SVG-bilder, inte JSON som bildwidgeten behöver.)*
 
 ---
 
@@ -142,9 +142,9 @@ Allt sparas lokalt. **Innehållet ska inte följa med i delningslänkar** (bara 
 - [x] **Anteckning:** fritext med enkel markdown (rubrik, fet, lista).
 - [x] **Pomodoro-timer:** 25/5 min (konfigurerbart), start/paus/nollställ, räknare för avklarade pass idag, ljud vid slut (kräver ett första klick), visar tid kvar i flikens titel när den går.
 - [x] **Klocka och världsklockor:** valfria tidszoner via `Intl`.
-- [ ] **Nedräkning till datum:** "Semester om 23 dagar".
-- [ ] **Månfas:** räkna lokalt (ingen API behövs).
-- [ ] **Årets/dagens framsteg:** "78 % av 2026 har gått" som gauge.
+- [x] **Nedräkning till datum:** "Semester om 23 dagar".
+- [x] **Månfas:** räkna lokalt (ingen API behövs).
+- [x] **Årets/dagens framsteg:** "78 % av 2026 har gått" som gauge.
 - [x] Lägg dem i en ny kategori "Personal" i banken och som intresse "Productivity" i välkomstflödet.
 
 ---
@@ -161,10 +161,10 @@ Allt sparas lokalt. **Innehållet ska inte följa med i delningslänkar** (bara 
 
 ## 6. Väggskärmsläge (kiosk)
 
-- [ ] Knapp som går till helskärm, döljer verktygsfält och widgetknappar och låser layouten (inget drag).
-- [ ] Automatiskt mörkt tema mellan solnedgång och soluppgång för hemorten.
-- [ ] Valfri automatisk växling mellan boards var N:e minut.
-- [ ] `?kiosk=1&board={id}` i URL:en så att en iPad eller TV kan starta direkt i läget. Använd `?`, inte `#`, eftersom `#d=` redan används för delning.
+- [x] Knapp som går till helskärm, döljer verktygsfält och widgetknappar och låser layouten (inget drag). *(`js/kiosk.js`. Håller också skärmen vaken med Wake Lock där det stöds. Solberäkningen ligger i engine och är testad.)*
+- [x] Automatiskt mörkt tema mellan solnedgång och soluppgång för hemorten.
+- [x] Valfri automatisk växling mellan boards var N:e minut.
+- [x] `?kiosk=1&board={id}` i URL:en så att en iPad eller TV kan starta direkt i läget. Använd `?`, inte `#`, eftersom `#d=` redan används för delning.
 
 ---
 
@@ -199,12 +199,12 @@ Inget byggsteg, inga testramverk som kräver kompilering. Kör med Node 20+ (`no
 
 ## 6d. Installerbar app (PWA)
 
-- [ ] `manifest.webmanifest`: namn, ikoner (192 och 512 px, maskable), `display: "standalone"`, temafärger för ljust och mörkt.
-- [ ] `sw.js` (service worker): cacha appskalet (`index.html`, `js/`, `css/`, `blueprints.js`, `vendor/`) så att appen startar offline. Cachenamnet ska följa versionsnumret från regel 3 så att en ny release ersätter den gamla cachen.
-- [ ] Spara senaste lyckade svar per widget (redan i minnet i `rt`) även i IndexedDB, och visa det med märkningen "Offline, data från 14:32" när nätet saknas.
-- [ ] API-svar ska **inte** cachas av service workern (de ska alltid vara färska när det finns nät).
-- [ ] Testa installation på iPad (Safari, "Lägg till på hemskärmen") och Android (Chrome), och att väggskärmsläget från 6 fungerar i installerat läge.
-- [ ] Service workers fungerar inte på `file://`. Appen ska fortfarande fungera där, bara utan offline-stöd.
+- [x] `manifest.webmanifest`: namn, ikoner (192 och 512 px, maskable), `display: "standalone"`, temafärger för ljust och mörkt.
+- [x] `sw.js` (service worker): cacha appskalet (`index.html`, `js/`, `css/`, `blueprints.js`, `vendor/`) så att appen startar offline. Cachenamnet ska följa versionsnumret från regel 3 så att en ny release ersätter den gamla cachen.
+- [x] Spara senaste lyckade svar per widget (redan i minnet i `rt`) även i IndexedDB, och visa det med märkningen "Offline, data från 14:32" när nätet saknas.
+- [x] API-svar ska **inte** cachas av service workern (de ska alltid vara färska när det finns nät).
+- [ ] Testa installation på iPad (Safari, "Lägg till på hemskärmen") och Android (Chrome), och att väggskärmsläget från 6 fungerar i installerat läge. *(Kräver riktiga enheter: Jesper testar.)*
+- [x] Service workers fungerar inte på `file://`. Appen ska fortfarande fungera där, bara utan offline-stöd.
 
 ---
 

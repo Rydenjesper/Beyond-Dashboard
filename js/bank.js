@@ -2,7 +2,11 @@
 /* Widget bank and module configurator. */
 /* ═══ Widget bank ═════════════════════════════════════════ */
 let bankCat = "all";
-function openBank() { renderBank(); $("#bank").showModal(); $("#bankSearch").focus(); }
+/* Last night's health check (status.json, written by CI). Missing on file:// or before the first run: then no warnings. */
+let health = null;
+const healthNote = id => { const r = health?.results?.[id]; return r && !r.ok ? `<span class="bp-warn" title="Didn't answer in the check on ${esc(fmt(health.checked, { format: "date" }))}. It may be down for now.">⚠ Not answering</span>` : ""; };
+function loadHealth() { if (health !== null) return; health = {}; fetch("status.json", { cache: "no-cache" }).then(r => r.ok ? r.json() : {}).then(d => { health = d || {}; if ($("#bank").open) renderBank(); }).catch(() => {}); }
+function openBank() { loadHealth(); renderBank(); $("#bank").showModal(); $("#bankSearch").focus(); }
 function renderBank() {
   const q = $("#bankSearch").value.trim().toLowerCase();
   const all = [...MODULES.map(m => ({ ...m, kind: "mod" })), ...BANK.map(b => ({ ...b, kind: "bp" }))];
@@ -14,11 +18,11 @@ function renderBank() {
   const mods = all.filter(x => x.kind === "mod" && match(x)), bps = all.filter(x => x.kind === "bp" && match(x));
   $("#bankCount").textContent = `${MODULES.length} modules · ${BANK.length} ready-made`;
   const modCard = m => `<div class="bp mod">
-      <div class="bp-top"><span class="bp-cat"><span class="cat" style="background:${CATS[m.category]}"></span>${esc(m.category)}</span><span class="bp-type">module</span></div>
+      <div class="bp-top"><span class="bp-cat"><span class="cat" style="background:${CATS[m.category]}"></span>${esc(m.category)}</span><span class="bp-type">module</span></div>${healthNote(m.id)}
       <h4>${esc(m.name)}</h4><p>${esc(m.desc)}</p>
       <div class="bp-foot"><span class="bp-host">${m.params.map(p => esc(p.label.toLowerCase())).join(" · ")}</span><button class="add" data-mod="${m.id}">Set up</button></div></div>`;
   const bpCard = b => { const c = b.mod ? buildCfg(MOD[b.mod], b.params) : b; return `<div class="bp">
-      <div class="bp-top"><span class="bp-cat"><span class="cat" style="background:${CATS[catOf(b)] || CATS.custom}"></span>${esc(catOf(b))}</span><span class="bp-type">${esc(DISPLAY_NAMES[c.display] || c.display)}</span></div>
+      <div class="bp-top"><span class="bp-cat"><span class="cat" style="background:${CATS[catOf(b)] || CATS.custom}"></span>${esc(catOf(b))}</span><span class="bp-type">${esc(DISPLAY_NAMES[c.display] || c.display)}</span></div>${healthNote(b.mod || b.id)}
       <h4>${esc(b.name)}</h4><p>${esc(b.desc)}</p>
       <div class="bp-foot"><span class="bp-host">${esc(host(c.url))}</span><button class="add" data-add="${b.id}">Add</button></div></div>`; };
   $("#bankBody").innerHTML =

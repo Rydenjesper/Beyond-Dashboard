@@ -111,6 +111,7 @@ function mount(w) {
   el.querySelector(".grid-stack-item-content").innerHTML = cardHTML(c);
   const prev = rt.get(w.id), hist = prev?.hist || clone(histStore[w.id] || []);
   rt.set(w.id, { ...(prev || {}), hist, history: hist.slice(-40).map(([, v]) => v), cfg: c, timer: null });
+  if (!prev?.updated && !c.local) lastDB.get(w.id).then(v => { const r = rt.get(w.id); if (v && r && !r.updated) { Object.assign(r, v, { stale: true }); paint(w.id); } });
   syncNode(w, el);
   paint(w.id);
   return el;
@@ -160,15 +161,43 @@ async function fetchData(c, signal) {
   }
   if (!res.ok) throw new Error(`The API answered ${res.status}${res.status === 404 ? " (not found, check the name)" : res.status === 429 ? " (rate limited, try a longer refresh)" : ""}`);
   const txt = await res.text();
-  try { return JSON.parse(txt); } catch { return txt.trim(); }
+  try { return JSON.parse(txt); } catch { return /^\s*</.test(txt) ? parseFeed(txt) ?? txt.trim() : txt.trim(); }
 }
-const errText = e => e.name === "AbortError" ? "Timed out after 20 seconds." : e instanceof TypeError ? "Couldn't reach the API. It may be down or block browser requests (CORS)." : e.message;
+/* RSS and Atom become { title, items: [{ title, link, date, summary }] }. Anything else XML stays text. */
+function parseFeed(xml) {
+  const doc = new DOMParser().parseFromString(xml, "application/xml");
+  if (doc.querySelector("parsererror")) return null;
+  const nodes = [...doc.querySelectorAll("item, entry")];
+  if (!nodes.length && !doc.querySelector("rss, feed, channel")) return null;
+  const txt = (el, sel) => el.querySelector(sel)?.textContent.trim() || "";
+  const plain = s => unescapeHTML(s.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim()).slice(0, 400);
+  return { title: txt(doc, "channel > title, feed > title"),
+    items: nodes.slice(0, 50).map(n => ({ title: plain(txt(n, "title")), link: txt(n, "link") || n.querySelector("link")?.getAttribute("href") || "",
+      date: txt(n, "pubDate") || txt(n, "updated") || txt(n, "published"), summary: plain(txt(n, "description, summary, content")) })) };
+}
+const errText = (e, c) => c?.proxyHint && e instanceof TypeError && e.name !== "AbortError" ? "This feed doesn't let browsers read it (CORS). Add your own proxy in the widget's settings, see the README." :  e.name === "AbortError" ? "Timed out after 20 seconds." : e instanceof TypeError ? "Couldn't reach the API. It may be down or block browser requests (CORS)." : e.message;
 
 function schedule(id) {
   const r = rt.get(id); if (!r) return;
   clearInterval(r.timer);
   r.timer = setInterval(() => { if (!document.hidden) load(id); }, Math.max(10, +r.cfg.refresh || 300) * 1000);
 }
+/* The last good answer per widget lives in IndexedDB, so a board opened offline still shows something. */
+const lastDB = (() => {
+  let db;
+  const open = () => db ||= new Promise((ok, no) => { const r = indexedDB.open("beyond", 1); r.onupgradeneeded = () => r.result.createObjectStore("last"); r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error); });
+  const tx = (mode, fn) => open().then(d => new Promise((ok, no) => { const t = d.transaction("last", mode), q = fn(t.objectStore("last")); t.oncomplete = () => ok(q?.result); t.onerror = () => no(t.error); }));
+  const safe = p => p.catch(() => undefined);
+  return { get: id => typeof indexedDB === "undefined" ? Promise.resolve() : safe(tx("readonly", s => s.get(id))),
+    put: (id, v) => typeof indexedDB === "undefined" || previewing ? Promise.resolve() : safe(tx("readwrite", s => s.put(v, id))) };
+})();
+function keepLast(id, r) {
+  let data = r.data; try { if (JSON.stringify(data).length > 200e3) data = undefined; } catch { data = undefined; }   // big responses: keep the value only
+  lastDB.put(id, { value: r.value, level: r.level, data, updated: r.updated });
+}
+const ageText = r => r.error && !r.updated ? "error"
+  : (r.stale || r.error) && !navigator.onLine && r.updated ? `Offline · from ${new Date(r.updated).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : timeAgo(r.updated);
+
 /* Every number a widget shows is remembered (200 points, beyond.history.v1), so sparklines
    and the History view survive a reload. */
 const HIST_KEY = "beyond.history.v1", HIST_MAX = 200;
@@ -222,10 +251,10 @@ async function load(id, force) {
       const out = await loadSources(r.cfg, maxAge, force);
       Object.assign(r, { data: out.env, value: out.value, level: out.level });
     } else { r.data = await fetchShared(r.cfg, maxAge, force); r.value = resolve(r.cfg, r.data); }
-    r.error = null; r.updated = Date.now();
+    r.error = null; r.updated = Date.now(); r.stale = false; keepLast(id, r);
     const n = Number(r.value);
     if (r.value !== "" && r.value != null && !isNaN(n) && typeof r.value !== "boolean") record(id, r, n);
-  } catch (e) { r.error = errText(e); }
+  } catch (e) { r.error = errText(e, r.cfg); }
   finally { r.loading = false; paint(id); }
 }
 
@@ -263,7 +292,7 @@ function paint(id) {
   const el = itemEl(id), r = rt.get(id); if (!el || !r) return;
   if (r.cfg.local) { $(".age", el).textContent = ""; return mountLocal($(".w-b", el), r.cfg, id); }
   const cols = el.gridstackNode?.w || 2;
-  $(".age", el).textContent = r.error && !r.updated ? "error" : timeAgo(r.updated);
+  $(".age", el).textContent = ageText(r);
   $(".w-b", el).innerHTML = render(r.cfg, r, cols);
 }
 let tickN = 0;
@@ -271,7 +300,7 @@ setInterval(() => {
   tickN++;
   rt.forEach((r, id) => {
     const el = itemEl(id); if (!el || !r.updated) return;
-    $(".age", el).textContent = timeAgo(r.updated);
+    $(".age", el).textContent = ageText(r);
     if (tickN % 6 === 0 && ticks(r.cfg)) { if (/\[now\]/.test(r.cfg.path)) r.value = resolve(r.cfg, r.data); paint(id); }   // countdowns and [now] values move every 30 s
   });
 }, 5000);
