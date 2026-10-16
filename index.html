@@ -282,6 +282,17 @@ dialog[open] { display: flex; flex-direction: column; }
 .f textarea { height: 64px; padding: 8px 11px; resize: vertical; font: 400 12.5px var(--f-mono); }
 .f input.mono { font-family: var(--f-mono); font-size: 13px; }
 .f small { color: var(--faint); font-size: 12px; }
+.f select:disabled { color: var(--faint); }
+#e_pathSel { font-family: var(--f-mono); font-size: 12.5px; }
+.adv summary { cursor: pointer; color: var(--muted); font-size: 12.5px; margin-top: 4px; width: fit-content; }
+.adv summary:hover { color: var(--ink); }
+.adv[open] summary { margin-bottom: 6px; }
+.adv input { width: 100%; height: 38px; }
+.adv small { display: block; margin-top: 4px; }
+.fieldchips { margin-top: 6px; }
+.fieldchips:empty { display: none; }
+.fieldchips .chip { font: 400 11.5px var(--f-mono); padding: 3px 9px; }
+.fieldchips .chip::before { content: "+ "; color: var(--accent); }
 .url-row { display: flex; gap: 8px; }
 .url-row input { flex: 1; }
 .explorer { border: 1px solid var(--line); border-radius: 12px; background: var(--panel-2); display: flex; flex-direction: column; min-height: 320px; max-height: 60vh; overflow: hidden; }
@@ -431,8 +442,13 @@ body.touring .grid-stack-item.tour-target > .ui-resizable-handle { display: bloc
             <option value="beacon">Status light</option><option value="json">Raw JSON</option>
           </select></div>
         <div class="f"><label for="e_refresh">Refresh every (sec)</label><input id="e_refresh" type="number" min="10" value="300"></div>
-        <div class="f full"><label for="e_path">Value path</label><input id="e_path" class="mono" placeholder="data.items[0].price"><small>Click a value in the response to fill this in. Use {braces} to combine fields.</small></div>
-        <div class="f full" data-for="list ticker"><label for="e_item">Each item shows</label><input id="e_item" class="mono" placeholder="{title} · {score}"></div>
+        <div class="f full"><label for="e_pathSel">Value to show</label>
+          <select id="e_pathSel" disabled><option value="">Press Fetch to see every field in the response</option></select>
+          <details class="adv" id="e_adv"><summary>Write a custom path or template</summary>
+            <input id="e_path" class="mono" placeholder="data.items[0].price   or   {city}: {temp}°" aria-label="Custom path or template">
+            <small>A template combines fields: {name} · {price|compact}. Filters: countdown, date, time, compact.</small></details></div>
+        <div class="f full" data-for="list ticker"><label for="e_item">Each item shows</label><input id="e_item" class="mono" placeholder="{title} · {score}">
+          <div class="chips fieldchips" id="e_itemFields"></div></div>
         <div class="f" data-for="stat gauge"><label for="e_prefix">Prefix</label><input id="e_prefix" placeholder="$"></div>
         <div class="f" data-for="stat gauge"><label for="e_unit">Unit</label><input id="e_unit" placeholder="km/h"></div>
         <div class="f" data-for="gauge"><label for="e_min">Min</label><input id="e_min" type="number" step="any" value="0"></div>
@@ -1025,8 +1041,11 @@ function openEditor(w) {
   F("ok").value = [].concat(v.ok ?? []).join(", "); F("warn").value = [].concat(v.warn ?? []).join(", ");
   F("headers").value = Object.entries(v.headers || {}).map(([k, x]) => `${k}: ${x}`).join("\n");
   $("#edTitle").textContent = w ? `Edit ${v.name}` : "Connect an API";
+  F("name").dataset.auto = w ? "0" : "1";
   $("#e_save").textContent = w ? "Save changes" : "Add to dashboard";
   exData = undefined; $("#ex_status").textContent = "";
+  $("#e_pathSel").innerHTML = `<option value="">Press Fetch to see every field in the response</option>`; $("#e_pathSel").disabled = true;
+  $("#e_adv").open = isTemplate(v.path); $("#e_itemFields").innerHTML = "";
   $("#ex_tree").innerHTML = `<div class="ex-empty">Press <b>Fetch</b> to load the response. Click any value to point the widget at it.${w ? "" : `<br><br>No idea where to start? Try <code>https://api.wheretheiss.at/v1/satellites/25544</code>`}</div>`;
   toggleFields(); updatePreview();
   if ($("#bank").open) $("#bank").close();
@@ -1056,15 +1075,19 @@ async function testFetch() {
     const res = await fetch(fillPlaceholders(url), { headers: parseHeaders(F("headers").value), cache: "no-store" });
     const txt = await res.text(); try { exData = JSON.parse(txt); } catch { exData = txt.trim(); }
     $("#ex_status").textContent = `${res.status} · ${Math.round(performance.now() - t0)} ms · ${(txt.length / 1024).toFixed(1)} kB`;
-    renderTree();
-    if (!F("name").value) F("name").value = host(url);
+    const cur = F("path").value.trim();
+    if (cur && !isTemplate(cur) && pick(exData, cur) === undefined) F("path").value = "";   // new endpoint, old field doesn't exist
+    renderTree(); renderPathOptions(); markTreeRow(); renderItemFields();
+    if (!F("name").value || F("name").dataset.auto === "1") { F("name").value = host(url); F("name").dataset.auto = "1"; }   // keep auto-names in sync until the user types one
   } catch {
     exData = undefined; $("#ex_status").textContent = "failed";
+    $("#e_pathSel").innerHTML = `<option value="">No response to choose from</option>`; $("#e_pathSel").disabled = true;
     $("#ex_tree").innerHTML = `<div class="ex-empty"><b>Couldn't reach that endpoint.</b><br>Either the URL is wrong, or the API doesn't allow requests from browsers (CORS). Many APIs only work from a server. Check the API docs for “CORS” or try another endpoint.</div>`;
   }
   updatePreview();
 }
 $("#e_test").addEventListener("click", testFetch);
+F("name").addEventListener("input", () => F("name").dataset.auto = "0");
 F("url").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); testFetch(); } });
 function renderTree() {
   const out = []; let rows = 0;
@@ -1083,15 +1106,69 @@ function renderTree() {
   walk(exData, "", null, 0);
   $("#ex_tree").innerHTML = out.join("") || `<div class="ex-empty">Empty response.</div>`;
 }
-$("#ex_tree").addEventListener("click", e => {
-  const row = e.target.closest(".row"); if (!row) return;
-  $$(".row.sel", $("#ex_tree")).forEach(x => x.classList.remove("sel")); row.classList.add("sel");
-  const p = row.dataset.p, v = pick(exData, p);
+/* Every pickable field in the response: leaves, plus arrays (for lists). Arrays are sampled through their first item. */
+function collectPaths(data) {
+  const out = [];
+  const short = v => { const s = typeof v === "string" ? `"${v}"` : JSON.stringify(v); return s.length > 42 ? s.slice(0, 41) + "…" : s; };
+  const walk = (v, path, depth) => {
+    if (out.length > 400 || depth > 8) return;
+    if (Array.isArray(v)) {
+      out.push({ p: path, label: `${path || "(whole response)"}  ·  [${v.length} items]` });
+      if (v.length) walk(v[0], `${path}[0]`, depth + 1);
+    } else if (v && typeof v === "object") Object.entries(v).forEach(([k, x]) => walk(x, path ? `${path}.${k}` : k, depth + 1));
+    else out.push({ p: path, label: `${path || "(whole response)"}  ·  ${short(v)}` });
+  };
+  walk(data, "", 0);
+  return out;
+}
+function renderPathOptions() {
+  const sel = $("#e_pathSel"), cur = F("path").value.trim(), paths = collectPaths(exData);
+  const known = paths.some(x => x.p === cur);
+  sel.innerHTML = (cur && !known ? `<option value="${esc(cur)}">Custom: ${esc(cur)}</option>` : "") +
+    (!known && !cur ? `<option value="__none" disabled selected>Choose a field…</option>` : "") +
+    paths.map(x => `<option value="${esc(x.p)}"${x.p === cur ? " selected" : ""}>${esc(x.label)}</option>`).join("");
+  sel.disabled = false;
+  if (cur && !known) { sel.value = cur; $("#e_adv").open = true; }
+}
+function markTreeRow() {
+  const p = F("path").value.trim();
+  $$("#ex_tree .row").forEach(r => r.classList.toggle("sel", r.dataset.p === p));
+}
+/* For lists: offer the fields of one item as one-click {placeholders}. */
+function renderItemFields() {
+  const box = $("#e_itemFields"), v = exData === undefined ? undefined : resolve(readForm(), exData);
+  const first = Array.isArray(v) ? v[0] : undefined;
+  if (!first || typeof first !== "object") { box.innerHTML = ""; return; }
+  const fields = collectPaths(first).filter(x => x.p && !x.label.endsWith("items]")).slice(0, 24);
+  box.innerHTML = fields.map(x => `<button type="button" class="chip" data-field="${esc(x.p)}" title="${esc(x.label)}">${esc(x.p)}</button>`).join("");
+}
+$("#e_itemFields").addEventListener("click", e => {
+  const b = e.target.closest("[data-field]"); if (!b) return;
+  const cur = F("item").value.trim();
+  F("item").value = cur ? `${cur} · {${b.dataset.field}}` : `{${b.dataset.field}}`;
+  updatePreview();
+});
+function choosePath(p) {
+  const v = pick(exData, p);
   F("path").value = p;
   if (Array.isArray(v) && !["list", "ticker", "json"].includes(F("display").value)) F("display").value = "list";
   else if (typeof v === "number" && !["stat", "gauge"].includes(F("display").value)) F("display").value = "stat";
   else if (typeof v === "string" && /^https?:\/\/.+\.(png|jpe?g|gif|webp|svg)(\?|$)/i.test(v)) F("display").value = "image";
-  toggleFields(); updatePreview();
+  else if (typeof v === "string" && ["stat", "gauge"].includes(F("display").value) && isNaN(Number(v))) F("display").value = "text";
+  if (Array.isArray(v) && !F("item").value) {   // sensible default line for list items
+    const f = v[0] && typeof v[0] === "object" ? collectPaths(v[0]).find(x => /title|name|text|headline|label/i.test(x.p) && !x.label.endsWith("items]")) : null;
+    if (f) F("item").value = `{${f.p}}`;
+  }
+  if ($("#e_pathSel").value !== p) $("#e_pathSel").value = p;
+  toggleFields(); markTreeRow(); renderItemFields(); updatePreview();
+}
+$("#ex_tree").addEventListener("click", e => { const row = e.target.closest(".row"); if (row) choosePath(row.dataset.p); });
+$("#e_pathSel").addEventListener("change", e => choosePath(e.target.value));
+F("path").addEventListener("input", () => {
+  if (exData === undefined) return;
+  const p = F("path").value.trim(), sel = $("#e_pathSel");
+  if ([...sel.options].some(o => o.value === p && !o.textContent.startsWith("Custom"))) sel.value = p; else renderPathOptions();
+  markTreeRow(); renderItemFields();
 });
 function updatePreview() {
   if (exData === undefined) { $("#ex_preview").textContent = "—"; return; }

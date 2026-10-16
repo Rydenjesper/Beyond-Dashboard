@@ -38,6 +38,31 @@ const NUM = ["stat", "gauge"];
 const meteo = (base, p, v) => `https://${base}?latitude=${p.place.lat}&longitude=${p.place.lon}&current=${v}`;
 
 window.MODULES = [
+  // ── SWEDEN ───────────────────────────────────────────────
+  { id: "elpris", name: "Elpriset just nu", category: "sweden",
+    desc: "Spot price for electricity in your bidding zone, updated every 15 minutes.",
+    params: [
+      { key: "zone", label: "Elområde", type: "choice", default: "SE3", options: [
+        { value: "SE1", label: "SE1 Luleå" }, { value: "SE2", label: "SE2 Sundsvall" },
+        { value: "SE3", label: "SE3 Stockholm" }, { value: "SE4", label: "SE4 Malmö" },
+      ] },
+      { key: "vat", label: "Moms", type: "choice", default: "ex", options: [
+        { value: "ex", label: "Utan moms", scale: 100 }, { value: "inc", label: "Med moms (25 %)", scale: 125 },
+      ] },
+    ],
+    displays: ["gauge", "stat"],
+    build: p => ({ name: `Elpris ${p.zone}${p.vat === "inc" ? " inkl. moms" : ""}`, url: `https://www.elprisetjustnu.se/api/v1/prices/{YYYY}/{MM}-{DD}_${p.zone}.json`,
+      path: "[now].SEK_per_kWh", unit: "öre/kWh", decimals: 1, min: 0, max: 300, refresh: 900 }) },
+
+  { id: "polisen", name: "Polisen", category: "sweden",
+    desc: "The latest police events, for all of Sweden or one county or town.",
+    params: [
+      { key: "place", label: "Län eller ort", type: "text", default: "Stockholm", placeholder: "Leave empty for all of Sweden" },
+    ],
+    displays: ["list", "ticker"],
+    build: p => ({ name: p.place ? `Polisen · ${p.place}` : "Polisen · hela Sverige",
+      url: `https://polisen.se/api/events${p.place ? `?locationname=${encodeURIComponent(p.place)}` : ""}`, path: "", item: "{name} — {summary}", refresh: 600 }) },
+
   // ── WEATHER ──────────────────────────────────────────────
   { id: "weather", name: "Weather", category: "weather",
     desc: "Any weather reading, anywhere on Earth. Pick the metric and the place.",
@@ -206,7 +231,67 @@ window.MODULES = [
       url: `https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/${p.mag}_${p.period}.geojson`,
       path: display === "stat" ? "metadata.count" : "features", item: "M{properties.mag} · {properties.place}", unit: display === "stat" ? "quakes" : undefined, refresh: 600 }) },
 
+  // ── LAUNCHES ─────────────────────────────────────────────
+  { id: "launches", name: "Rocket launches", category: "space",
+    desc: "Countdown to the next orbital launch, from any provider. (Free tier: 15 calls an hour, so it refreshes slowly.)",
+    params: [
+      { key: "provider", label: "Provider", type: "choice", default: "", options: [
+        { value: "", label: "Anyone" }, { value: "SpaceX", label: "SpaceX" }, { value: "Rocket Lab", label: "Rocket Lab" },
+        { value: "United Launch Alliance", label: "ULA" }, { value: "Blue Origin", label: "Blue Origin" }, { value: "Arianespace", label: "Arianespace" },
+        { value: "China Aerospace Science and Technology Corporation", label: "China (CASC)" },
+      ] },
+      { key: "show", label: "Show", type: "choice", default: "countdown", options: [
+        { value: "countdown", label: "Countdown", displays: ["stat"] },
+        { value: "next", label: "Next mission", displays: ["text"] },
+        { value: "upcoming", label: "Upcoming", displays: ["list", "ticker"] },
+      ] },
+    ],
+    build: (p, s) => {
+      const who = p.provider ? s.provider.label : "";
+      const url = `https://ll.thespacedevs.com/2.3.0/launches/upcoming/?limit=10&mode=list&hide_recent_previous=true${p.provider ? `&lsp__name=${encodeURIComponent(p.provider)}` : ""}`;
+      if (p.show === "countdown") return { name: `Next ${who} launch`.replace("  ", " "), url, path: "results[0].net", format: "countdown", refresh: 1800 };
+      if (p.show === "next") return { name: `Next ${who} launch`.replace("  ", " "), url, path: "{results[0].name} · {results[0].net|countdown}", refresh: 1800 };
+      return { name: `Upcoming ${who} launches`.replace("  ", " "), url, path: "results", item: "{net|countdown} · {name}", refresh: 1800 };
+    } },
+
+  // ── SPORT ────────────────────────────────────────────────
+  { id: "chess", name: "Chess rating", category: "sport",
+    desc: "Live rating for any player on chess.com or Lichess.",
+    params: [
+      { key: "site", label: "Site", type: "choice", default: "chesscom", options: [ { value: "chesscom", label: "chess.com" }, { value: "lichess", label: "Lichess" } ] },
+      { key: "user", label: "Username", type: "text", default: "magnuscarlsen", placeholder: "magnuscarlsen" },
+      { key: "speed", label: "Time control", type: "choice", default: "blitz", options: [
+        { value: "bullet", label: "Bullet" }, { value: "blitz", label: "Blitz" }, { value: "rapid", label: "Rapid" },
+      ] },
+    ],
+    displays: ["stat"],
+    build: (p, s) => p.site === "lichess"
+      ? { name: `${p.user} · ${s.speed.label.toLowerCase()} (Lichess)`, url: `https://lichess.org/api/user/${encodeURIComponent(p.user)}`, path: `perfs.${p.speed}.rating`, decimals: 0, refresh: 600 }
+      : { name: `${p.user} · ${s.speed.label.toLowerCase()}`, url: `https://api.chess.com/pub/player/${encodeURIComponent(p.user.toLowerCase())}/stats`, path: `chess_${p.speed}.last.rating`, decimals: 0, refresh: 600 } },
+
+  { id: "f1", name: "Formula 1", category: "sport",
+    desc: "Current championship standings.",
+    params: [
+      { key: "table", label: "Standings", type: "choice", default: "driver", options: [ { value: "driver", label: "Drivers" }, { value: "constructor", label: "Constructors" } ] },
+    ],
+    displays: ["list", "ticker"],
+    build: p => p.table === "driver"
+      ? { name: "F1 drivers", url: "https://api.jolpi.ca/ergast/f1/current/driverStandings.json", path: "MRData.StandingsTable.StandingsLists[0].DriverStandings", item: "{position}. {Driver.givenName} {Driver.familyName} · {points} p", refresh: 21600 }
+      : { name: "F1 constructors", url: "https://api.jolpi.ca/ergast/f1/current/constructorStandings.json", path: "MRData.StandingsTable.StandingsLists[0].ConstructorStandings", item: "{position}. {Constructor.name} · {points} p", refresh: 21600 } },
+
   // ── KNOWLEDGE ────────────────────────────────────────────
+  { id: "holidays", name: "Public holidays", category: "knowledge",
+    desc: "The next public holidays in any country.",
+    params: [
+      { key: "country", label: "Country code", type: "text", default: "SE", placeholder: "SE, NO, US, DE…", upper: true },
+      { key: "show", label: "Show", type: "choice", default: "next", options: [
+        { value: "next", label: "Next one", displays: ["text"] }, { value: "list", label: "Coming up", displays: ["list"] },
+      ] },
+    ],
+    build: p => p.show === "next"
+      ? { name: `Next holiday (${p.country})`, url: `https://date.nager.at/api/v3/NextPublicHolidays/${p.country}`, path: "{[0].localName} · {[0].date|countdown}", refresh: 21600 }
+      : { name: `Holidays (${p.country})`, url: `https://date.nager.at/api/v3/NextPublicHolidays/${p.country}`, path: "", item: "{date|date} · {localName}", refresh: 21600 } },
+
   { id: "wiki", name: "Wikipedia", category: "knowledge",
     desc: "On this day, or a random article, in your language.",
     params: [
@@ -253,6 +338,17 @@ window.BLUEPRINTS = [
   M("bp_is_odd", "is-odd downloads", "People who need a package to check if a number is odd.", "npm", { pkg: "is-odd", period: "last-week" }),
   M("bp_on_this_day", "On this day", "Events that happened on today's date.", "wiki", { feed: "onthisday", lang: "en" }),
   M("bp_delhi_pm25", "Delhi PM2.5", "Fine particulate matter over New Delhi.", "air", { metric: "pm2_5", place: { name: "New Delhi", lat: 28.61, lon: 77.21 } }),
+  M("bp_elpris_se3", "Elpris SE3", "Spot price right now in Stockholm's bidding zone.", "elpris", { zone: "SE3", vat: "ex" }),
+  M("bp_elpris_se4", "Elpris SE4", "Southern Sweden, usually the most expensive zone.", "elpris", { zone: "SE4", vat: "ex" }),
+  M("bp_polisen_sthlm", "Polisen i Stockholm", "Latest police events in Stockholm county.", "polisen", { place: "Stockholm" }),
+  M("bp_polisen_all", "Polisen ticker", "Every police event in Sweden as a scrolling ticker.", "polisen", { place: "", display: "ticker" }),
+  M("bp_next_launch", "Next rocket launch", "Countdown to the next orbital launch anywhere on Earth.", "launches", { provider: "", show: "countdown" }),
+  M("bp_next_spacex", "Next SpaceX launch", "Mission name and countdown.", "launches", { provider: "SpaceX", show: "next" }),
+  M("bp_launches", "Launch schedule", "The next ten launches worldwide.", "launches", { provider: "", show: "upcoming" }),
+  M("bp_magnus_blitz", "Magnus Carlsen, blitz", "The world's best player's chess.com blitz rating.", "chess", { site: "chesscom", user: "magnuscarlsen", speed: "blitz" }),
+  M("bp_magnus_lichess", "Magnus on Lichess", "Bullet rating of DrNykterstein, Magnus's Lichess account.", "chess", { site: "lichess", user: "DrNykterstein", speed: "bullet" }),
+  M("bp_f1_drivers", "F1 drivers' championship", "Current standings.", "f1", { table: "driver" }),
+  M("bp_holiday_se", "Nästa röda dag", "The next Swedish public holiday and how long until it.", "holidays", { country: "SE", show: "next" }),
 
   // Raw APIs: one fixed source each.
   { id: "bp_people_in_space", name: "Humans in space", desc: "Number of people off-planet at this moment.", category: "space",
@@ -307,6 +403,51 @@ window.BLUEPRINTS = [
     url: "https://api.thecatapi.com/v1/images/search", path: "[0].url", display: "image", refresh: 300 },
   { id: "bp_pokemon", name: "Wild Pokémon appeared", desc: "A random Pokémon's official artwork.", category: "images",
     url: "https://pokeapi.co/api/v2/pokemon/{rand:1-1025}", path: "sprites.other.official-artwork.front_default", caption: "name", display: "image", refresh: 300 },
+  { id: "bp_art", name: "Random artwork", desc: "A random piece from the Art Institute of Chicago's collection.", category: "images",
+    url: "https://api.artic.edu/api/v1/artworks?limit=1&page={rand:1-9000}&fields=title,image_id,artist_title",
+    path: "https://www.artic.edu/iiif/2/{data[0].image_id}/full/843,/0/default.jpg", caption: "data[0].title", display: "image", refresh: 600 },
+
+  // Space, earth and water
+  { id: "bp_space_news", name: "Spaceflight news", desc: "Latest headlines from space news sites.", category: "space",
+    url: "https://api.spaceflightnewsapi.net/v4/articles/?limit=10", path: "results", item: "{title} ({news_site})", display: "list", refresh: 1800 },
+  { id: "bp_volcanoes", name: "Restless US volcanoes", desc: "US volcanoes currently above normal alert level.", category: "earth",
+    url: "https://volcanoes.usgs.gov/vsc/api/volcanoApi/elevated", path: "", item: "{vName} · {alertLevel} / {colorCode}", display: "list", refresh: 3600 },
+  { id: "bp_nyc_tide", name: "Water level at The Battery, NYC", desc: "Live tide gauge at the southern tip of Manhattan.", category: "earth",
+    url: "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?station=8518750&product=water_level&date=latest&datum=MLLW&units=metric&time_zone=gmt&format=json",
+    path: "data[0].v", display: "stat", unit: "m", decimals: 2, refresh: 600 },
+  { id: "bp_potomac", name: "Potomac River flow", desc: "How much water is passing Washington DC every second.", category: "earth",
+    url: "https://waterservices.usgs.gov/nwis/iv/?format=json&sites=01646500&parameterCd=00060",
+    path: "value.timeSeries[0].values[0].value[-1].value", display: "stat", unit: "ft³/s", format: "compact", refresh: 900 },
+
+  // Sweden
+  { id: "bp_riksdagen", name: "Nya motioner i riksdagen", desc: "The latest motions filed in the Swedish parliament.", category: "sweden",
+    url: "https://data.riksdagen.se/dokumentlista/?sok=&doktyp=mot&utformat=json&sz=15&sort=datum&sortorder=desc",
+    path: "dokumentlista.dokument", item: "{titel}", display: "list", refresh: 3600 },
+  { id: "bp_tv_se", name: "TV tonight in Sweden", desc: "Today's schedule on Swedish TV, via TVmaze.", category: "sweden",
+    url: "https://api.tvmaze.com/schedule?country=SE", path: "", item: "{airtime} · {show.name}", display: "list", refresh: 3600 },
+
+  // Sport and culture
+  { id: "bp_bundesliga", name: "Bundesliga table", desc: "Current German league standings.", category: "sport",
+    url: "https://api.openligadb.de/getbltable/bl1/{SEASON}", path: "", item: "{teamName} · {points} p", display: "list", refresh: 3600 },
+  { id: "bp_trending_books", name: "Trending books", desc: "What people are reading today on Open Library.", category: "knowledge",
+    url: "https://openlibrary.org/trending/daily.json?limit=15", path: "works", item: "{title} — {author_name[0]}", display: "list", refresh: 3600 },
+  { id: "bp_trivia", name: "Trivia", desc: "A random quiz question, answer included.", category: "fun",
+    url: "https://opentdb.com/api.php?amount=1", path: "{results[0].question} → {results[0].correct_answer}", display: "text", refresh: 300 },
+  { id: "bp_quote", name: "Quote of the moment", desc: "A random quote from DummyJSON.", category: "fun",
+    url: "https://dummyjson.com/quotes/random", path: "“{quote}” — {author}", display: "text", refresh: 300 },
+  { id: "bp_dev_joke", name: "Dev joke", desc: "One-liner programming jokes from JokeAPI.", category: "fun",
+    url: "https://v2.jokeapi.dev/joke/Programming?type=single&safe-mode", path: "joke", display: "text", refresh: 300 },
+
+  // Dev and money
+  { id: "bp_tube", name: "London Tube status", desc: "Service status for every Underground line.", category: "dev",
+    url: "https://api.tfl.gov.uk/Line/Mode/tube/Status", path: "", item: "{name}: {lineStatuses[0].statusSeverityDescription}", display: "list", refresh: 300 },
+  { id: "bp_gh_firehose", name: "GitHub firehose", desc: "Public events happening on GitHub right now. (60 calls/hour without a token.)", category: "dev",
+    url: "https://api.github.com/events?per_page=20", path: "", item: "{actor.login} · {type} · {repo.name}", display: "ticker", refresh: 300 },
+  { id: "bp_devto", name: "Top on dev.to", desc: "Today's most-liked posts on dev.to.", category: "dev",
+    url: "https://dev.to/api/articles?top=1&per_page=10", path: "", item: "{title} · {positive_reactions_count}♥", display: "list", refresh: 3600 },
+  { id: "bp_trending_coins", name: "Trending coins", desc: "Most-searched coins on CoinGecko right now.", category: "money",
+    url: "https://api.coingecko.com/api/v3/search/trending", path: "coins", item: "{item.name} ({item.symbol})", display: "list", refresh: 1800 },
+
   { id: "bp_iss_raw", name: "ISS telemetry (raw)", desc: "Full JSON from the ISS tracker, for the nerds.", category: "space",
     url: "https://api.wheretheiss.at/v1/satellites/25544", path: "", display: "json", refresh: 15 },
 ];
