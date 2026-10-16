@@ -447,7 +447,7 @@ window.MODULES = [
       sources: { b: { url: `https://api.coinbase.com/v2/prices/BTC-${p.cur}/spot`, path: "data.amount" }, f: { url: "https://api.alternative.me/fng/", path: "data[0]" } },
       value: `format(b, 0) + " ${p.cur} · " + f.value_classification + " (" + f.value + ")"` }) },
 
-  { id: "umbrella", name: "Umbrella for the bus?", category: "sweden",
+  { id: "umbrella", name: "Umbrella for the bus?", category: "traffic",
     desc: "Your next SL departure and whether it will rain in the next hour.",
     params: [
       { key: "stop", label: "Stop", type: "search", search: "sl_sites", default: { value: "9192", label: "Slussen" }, placeholder: "Search a stop…" },
@@ -508,7 +508,7 @@ window.MODULES = [
     ],
     displays: ["local"], build: p => ({ name: "Clock", local: "clock", zones: String(p.zones || "").split(",").map(s => s.trim()).filter(Boolean).slice(0, 8), h12: p.h12 === "12", size: [2, 2] }) },
 
-  { id: "sl", name: "SL departures", category: "sweden",
+  { id: "sl", name: "SL departures", category: "traffic",
     desc: "Live departures from any SL stop in Stockholm: metro, bus, commuter train, tram and boat.",
     params: [
       { key: "stop", label: "Stop", type: "search", search: "sl_sites", default: { value: "9192", label: "Slussen" }, placeholder: "Search a stop…" },
@@ -843,7 +843,7 @@ window.BLUEPRINTS = [
     url: "https://v2.jokeapi.dev/joke/Programming?type=single&safe-mode", path: "joke", display: "text", refresh: 300 },
 
   // Dev and money
-  { id: "bp_tube", name: "London Tube status", desc: "Service status for every Underground line.", category: "dev",
+  { id: "bp_tube", name: "London Tube status", desc: "Service status for every Underground line.", category: "traffic",
     url: "https://api.tfl.gov.uk/Line/Mode/tube/Status", path: "", item: "{name}: {lineStatuses[0].statusSeverityDescription}", display: "list", refresh: 300 },
   { id: "bp_gh_firehose", name: "GitHub firehose", desc: "Public events happening on GitHub right now. (60 calls/hour without a token.)", category: "dev",
     url: "https://api.github.com/events?per_page=20", path: "", item: "{actor.login} · {type} · {repo.name}", display: "ticker", refresh: 300 },

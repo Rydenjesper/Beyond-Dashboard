@@ -15,7 +15,7 @@ function toast(msg, undo) {
 const MODULES = window.MODULES || [], MOD = Object.fromEntries(MODULES.map(m => [m.id, m]));
 const BANK = window.BLUEPRINTS || [], BANK_BY_ID = Object.fromEntries(BANK.map(b => [b.id, b]));
 const PLACES = window.PLACES || [];
-const CATS = { space: "#7C8CFF", weather: "#3FB6D9", earth: "#4CB872", money: "#E0A42E", dev: "#A877E8", fun: "#F06E9C", knowledge: "#D98B4A", images: "#5FC4B0", sport: "#E8735A", sweden: "#4A90E2", personal: "#B5C24A", custom: "#98A1AE" };
+const CATS = { space: "#7C8CFF", weather: "#3FB6D9", earth: "#4CB872", money: "#E0A42E", dev: "#A877E8", fun: "#F06E9C", knowledge: "#D98B4A", images: "#5FC4B0", sport: "#E8735A", sweden: "#4A90E2", traffic: "#C46BAE", personal: "#B5C24A", custom: "#98A1AE" };
 const DISPLAY_NAMES = { stat: "Big number", gauge: "Gauge", text: "Text", list: "List", ticker: "Ticker", image: "Image", beacon: "Status light", json: "Raw JSON", local: "Personal", chart: "Chart", history: "History" };
 const DEFAULT_SIZE = { stat: [2, 1], gauge: [2, 2], text: [3, 1], list: [2, 2], ticker: [6, 1], image: [2, 2], beacon: [2, 1], json: [2, 2], chart: [3, 2], history: [3, 2] };
 
