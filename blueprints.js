@@ -39,28 +39,28 @@ const meteo = (base, p, v) => `https://${base}?latitude=${p.place.lat}&longitude
 
 window.MODULES = [
   // ── SWEDEN ───────────────────────────────────────────────
-  { id: "elpris", name: "Elpriset just nu", category: "sweden",
+  { id: "elpris", name: "Electricity price now", category: "sweden",
     desc: "Spot price for electricity in your bidding zone, updated every 15 minutes.",
     params: [
-      { key: "zone", label: "Elområde", type: "choice", default: "SE3", options: [
+      { key: "zone", label: "Bidding zone", type: "choice", default: "SE3", options: [
         { value: "SE1", label: "SE1 Luleå" }, { value: "SE2", label: "SE2 Sundsvall" },
         { value: "SE3", label: "SE3 Stockholm" }, { value: "SE4", label: "SE4 Malmö" },
       ] },
-      { key: "vat", label: "Moms", type: "choice", default: "ex", options: [
-        { value: "ex", label: "Utan moms", scale: 100 }, { value: "inc", label: "Med moms (25 %)", scale: 125 },
+      { key: "vat", label: "VAT", type: "choice", default: "ex", options: [
+        { value: "ex", label: "Excl. VAT", scale: 100 }, { value: "inc", label: "Incl. VAT (25%)", scale: 125 },
       ] },
     ],
     displays: ["gauge", "stat"],
-    build: p => ({ name: `Elpris ${p.zone}${p.vat === "inc" ? " inkl. moms" : ""}`, url: `https://www.elprisetjustnu.se/api/v1/prices/{YYYY}/{MM}-{DD}_${p.zone}.json`,
+    build: p => ({ name: `Electricity ${p.zone}${p.vat === "inc" ? " incl. VAT" : ""}`, url: `https://www.elprisetjustnu.se/api/v1/prices/{YYYY}/{MM}-{DD}_${p.zone}.json`,
       path: "[now].SEK_per_kWh", unit: "öre/kWh", decimals: 1, min: 0, max: 300, refresh: 900 }) },
 
-  { id: "polisen", name: "Polisen", category: "sweden",
+  { id: "polisen", name: "Swedish police", category: "sweden",
     desc: "The latest police events, for all of Sweden or one county or town.",
     params: [
-      { key: "place", label: "Län eller ort", type: "text", default: "Stockholm", placeholder: "Leave empty for all of Sweden" },
+      { key: "place", label: "County or town", type: "text", default: "Stockholm", placeholder: "Leave empty for all of Sweden" },
     ],
     displays: ["list", "ticker"],
-    build: p => ({ name: p.place ? `Polisen · ${p.place}` : "Polisen · hela Sverige",
+    build: p => ({ name: p.place ? `Police · ${p.place}` : "Police · all of Sweden",
       url: `https://polisen.se/api/events${p.place ? `?locationname=${encodeURIComponent(p.place)}` : ""}`, path: "", item: "{name} — {summary}", refresh: 600 }) },
 
   // ── WEATHER ──────────────────────────────────────────────
@@ -338,17 +338,17 @@ window.BLUEPRINTS = [
   M("bp_is_odd", "is-odd downloads", "People who need a package to check if a number is odd.", "npm", { pkg: "is-odd", period: "last-week" }),
   M("bp_on_this_day", "On this day", "Events that happened on today's date.", "wiki", { feed: "onthisday", lang: "en" }),
   M("bp_delhi_pm25", "Delhi PM2.5", "Fine particulate matter over New Delhi.", "air", { metric: "pm2_5", place: { name: "New Delhi", lat: 28.61, lon: 77.21 } }),
-  M("bp_elpris_se3", "Elpris SE3", "Spot price right now in Stockholm's bidding zone.", "elpris", { zone: "SE3", vat: "ex" }),
-  M("bp_elpris_se4", "Elpris SE4", "Southern Sweden, usually the most expensive zone.", "elpris", { zone: "SE4", vat: "ex" }),
-  M("bp_polisen_sthlm", "Polisen i Stockholm", "Latest police events in Stockholm county.", "polisen", { place: "Stockholm" }),
-  M("bp_polisen_all", "Polisen ticker", "Every police event in Sweden as a scrolling ticker.", "polisen", { place: "", display: "ticker" }),
+  M("bp_elpris_se3", "Electricity SE3", "Spot price right now in Stockholm's bidding zone.", "elpris", { zone: "SE3", vat: "ex" }),
+  M("bp_elpris_se4", "Electricity SE4", "Southern Sweden, usually the most expensive zone.", "elpris", { zone: "SE4", vat: "ex" }),
+  M("bp_polisen_sthlm", "Police in Stockholm", "Latest police events in Stockholm county.", "polisen", { place: "Stockholm" }),
+  M("bp_polisen_all", "Police ticker", "Every police event in Sweden as a scrolling ticker.", "polisen", { place: "", display: "ticker" }),
   M("bp_next_launch", "Next rocket launch", "Countdown to the next orbital launch anywhere on Earth.", "launches", { provider: "", show: "countdown" }),
   M("bp_next_spacex", "Next SpaceX launch", "Mission name and countdown.", "launches", { provider: "SpaceX", show: "next" }),
   M("bp_launches", "Launch schedule", "The next ten launches worldwide.", "launches", { provider: "", show: "upcoming" }),
   M("bp_magnus_blitz", "Magnus Carlsen, blitz", "The world's best player's chess.com blitz rating.", "chess", { site: "chesscom", user: "magnuscarlsen", speed: "blitz" }),
   M("bp_magnus_lichess", "Magnus on Lichess", "Bullet rating of DrNykterstein, Magnus's Lichess account.", "chess", { site: "lichess", user: "DrNykterstein", speed: "bullet" }),
   M("bp_f1_drivers", "F1 drivers' championship", "Current standings.", "f1", { table: "driver" }),
-  M("bp_holiday_se", "Nästa röda dag", "The next Swedish public holiday and how long until it.", "holidays", { country: "SE", show: "next" }),
+  M("bp_holiday_se", "Next Swedish holiday", "The next Swedish public holiday and how long until it.", "holidays", { country: "SE", show: "next" }),
 
   // Raw APIs: one fixed source each.
   { id: "bp_people_in_space", name: "Humans in space", desc: "Number of people off-planet at this moment.", category: "space",

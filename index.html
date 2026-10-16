@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="vendor/gridstack.min.css">
+<link rel="stylesheet" href="vendor/gridstack.min.css?v=3">
 <style>
 /* Layout: one toolbar, then a free-form 6-column board of instrument panels on a faint dot field. */
 :root {
@@ -526,8 +526,8 @@ body.touring .grid-stack-item.tour-target > .ui-resizable-handle { display: bloc
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script src="vendor/gridstack-all.js"></script>
-<script src="blueprints.js"></script>
+<script src="vendor/gridstack-all.js?v=3"></script>
+<script src="blueprints.js?v=3"></script>
 <script>
 "use strict";
 /* ═══ Utilities ═══════════════════════════════════════════ */
@@ -855,7 +855,7 @@ const DISPLAYS = {
   image(c, v, r) {
     if (!v || typeof v !== "string") return `<div class="state">This value isn't an image URL.</div>`;
     const cap = c.caption ? pick(r.data, c.caption) : "";
-    return `<figure class="img"><img src="${esc(v)}" alt="${esc(cap || c.name)}" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'state',textContent:'No image this round. A new one comes with the next refresh.'}))">${cap ? `<figcaption>${esc(unescapeHTML(cap))}</figcaption>` : ""}</figure>`;
+    return `<figure class="img"><img src="${esc(v)}" alt="${esc(cap || c.name)}" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'state',textContent:'No image this round. A new one comes with the next refresh.'}))">${cap ? `<figcaption>${esc(String(unescapeHTML(cap)).replace(/^File:/, "").replace(/\.(jpe?g|png|gif|webp|svg|tiff?)$/i, ""))}</figcaption>` : ""}</figure>`;
   },
   beacon(c, v) {
     const list = x => (Array.isArray(x) ? x : String(x || "").split(",")).map(s => String(s).trim().toLowerCase()).filter(Boolean);
@@ -1265,7 +1265,7 @@ $("#dropShared").addEventListener("click", () => { previewing = false; state = m
 /* ═══ Welcome: home + interests → a personal board ════════ */
 const INTERESTS = [
   { id: "weather", label: "Weather", hint: "Temperature, conditions, UV and daylight at home", cat: "weather" },
-  { id: "sweden", label: "Sverige", hint: "Elpriset, Polisen och nästa röda dag", cat: "sweden" },
+  { id: "sweden", label: "Sweden", hint: "Electricity prices, police events and the next public holiday", cat: "sweden" },
   { id: "space", label: "Space", hint: "Launch countdowns, the ISS, auroras", cat: "space" },
   { id: "money", label: "Money", hint: "Crypto, exchange rates, market mood", cat: "money" },
   { id: "dev", label: "Dev", hint: "Status pages, Hacker News, GitHub", cat: "dev" },
@@ -1318,7 +1318,7 @@ function openWelcome() {
 }
 function showWlStep(n) { $("#wlStep1").hidden = n !== 1; $("#wlStep2").hidden = n !== 2; }
 function paintHome() {
-  $("#wlPicked").innerHTML = wlHome ? `${ICON.pin}<b>${esc(wlHome.name)}</b><span class="muted">${esc(wlHome.region || "")}</span>` : `<span class="muted">Used for weather, daylight and, in Sweden, your elområde and local police news.</span>`;
+  $("#wlPicked").innerHTML = wlHome ? `${ICON.pin}<b>${esc(wlHome.name)}</b><span class="muted">${esc(wlHome.region || "")}</span>` : `<span class="muted">Used for weather, daylight and, in Sweden, your electricity zone and local police news.</span>`;
   $("#wlNext").textContent = wlHome ? "Next" : "Next without a home";
 }
 function paintInterests() {

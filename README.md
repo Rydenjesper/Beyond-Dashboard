@@ -12,7 +12,7 @@ To host it: push the folder to GitHub and turn on GitHub Pages.
 
 ## What it does
 
-- **Two-step setup**: first visit asks where home is and what you're into, then builds a personal board (your city's weather, your Swedish elområde, launches if you like space) and runs a five-tip tour. Rebuild any time from the widget bank; replay the tour with the ? button.
+- **Two-step setup**: first visit asks where home is and what you're into, then builds a personal board (your city's weather, your Swedish electricity zone, launches if you like space) and runs a five-tip tour. Rebuild any time from the widget bank; replay the tour with the ? button.
 
 - **Modules**: 19 configurable widget types. Weather, air quality, ocean and sun work for any place on Earth (search or pick an absurd preset). Swedish electricity spot prices per zone, Swedish police events per county, rocket launch countdowns, chess ratings, F1 standings, public holidays, crypto, exchange rates, GitHub repos, npm packages, 14 status pages, earthquakes, Wikipedia and Hacker News each have their own options.
 - **Ready-made widgets**: 80 one-click widgets, from South Pole temperature to Critical Cat Facts. All key-less and tested to work from a browser (CORS).
