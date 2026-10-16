@@ -16,8 +16,8 @@ const MODULES = window.MODULES || [], MOD = Object.fromEntries(MODULES.map(m => 
 const BANK = window.BLUEPRINTS || [], BANK_BY_ID = Object.fromEntries(BANK.map(b => [b.id, b]));
 const PLACES = window.PLACES || [];
 const CATS = { space: "#7C8CFF", weather: "#3FB6D9", earth: "#4CB872", money: "#E0A42E", dev: "#A877E8", fun: "#F06E9C", knowledge: "#D98B4A", images: "#5FC4B0", sport: "#E8735A", sweden: "#4A90E2", personal: "#B5C24A", custom: "#98A1AE" };
-const DISPLAY_NAMES = { stat: "Big number", gauge: "Gauge", text: "Text", list: "List", ticker: "Ticker", image: "Image", beacon: "Status light", json: "Raw JSON", local: "Personal" };
-const DEFAULT_SIZE = { stat: [2, 1], gauge: [2, 2], text: [3, 1], list: [2, 2], ticker: [6, 1], image: [2, 2], beacon: [2, 1], json: [2, 2] };
+const DISPLAY_NAMES = { stat: "Big number", gauge: "Gauge", text: "Text", list: "List", ticker: "Ticker", image: "Image", beacon: "Status light", json: "Raw JSON", local: "Personal", chart: "Chart", history: "History" };
+const DEFAULT_SIZE = { stat: [2, 1], gauge: [2, 2], text: [3, 1], list: [2, 2], ticker: [6, 1], image: [2, 2], beacon: [2, 1], json: [2, 2], chart: [3, 2], history: [3, 2] };
 
 /* A widget in state is small: position + either {mod, params}, {bp}, or a full custom config. */
 function cfgOf(w) {
@@ -54,9 +54,9 @@ let state = boards.boards.find(b => b.id === boards.active);   // the active boa
 /* Domains outside the catalog only load once approved for this board: opening a shared link
    must not let its author see the viewer's IP address. */
 const CATALOG_HOSTS = catalogHosts(MODULES, BANK);
-const widgetHosts = ws => [...new Set(ws.map(w => host(cfgOf(w).url)).filter(h => h && !CATALOG_HOSTS.has(h)))];
+const widgetHosts = ws => [...new Set(ws.flatMap(w => cfgUrls(cfgOf(w)).map(host)).filter(h => h && !CATALOG_HOSTS.has(h)))];
 boards.boards.forEach(b => { if (!Array.isArray(b.allowed)) b.allowed = widgetHosts(b.widgets); });   // boards from before v1.1 are the user's own
-const blockedHost = c => { const h = c.url && host(c.url); return h && !CATALOG_HOSTS.has(h) && !(state.allowed || []).includes(h) ? h : null; };
+const blockedHost = c => cfgUrls(c).map(host).find(h => h && !CATALOG_HOSTS.has(h) && !(state.allowed || []).includes(h)) || null;
 function allowHost(h) { if (h && !CATALOG_HOSTS.has(h) && !state.allowed.includes(h)) state.allowed.push(h); }
 let previewing = false;
 const rt = new Map();   // per widget: { cfg, data, value, error, updated, history, timer, loading }
@@ -100,7 +100,7 @@ function cardHTML(c, interactive = true) {
       </div>` : ""}
     </header>
     <div class="w-b"></div>
-    <footer class="w-f"><span class="src">${esc(c.local ? "this device only" : host(c.url))}</span><span class="age">waiting</span></footer>
+    <footer class="w-f"><span class="src">${esc(c.local ? "this device only" : (u => u.length > 1 ? `${host(u[0])} +${u.length - 1}` : host(u[0] || ""))(cfgUrls(c)))}</span><span class="age">waiting</span></footer>
   </article>`;
 }
 const itemEl = id => grid.el.querySelector(`.grid-stack-item[gs-id="${id}"]`);
@@ -109,8 +109,8 @@ function mount(w) {
   const el = grid.addWidget({ id: w.id, x: w.x, y: w.y, w: clamp(w.w || 2, 1, COLS), h: clamp(w.h || 1, 1, 4), maxH: 4, autoPosition: w.x == null || w.y == null });
   const c = cfgOf(w);
   el.querySelector(".grid-stack-item-content").innerHTML = cardHTML(c);
-  const prev = rt.get(w.id);
-  rt.set(w.id, { history: [], ...(prev || {}), cfg: c, timer: null });
+  const prev = rt.get(w.id), hist = prev?.hist || clone(histStore[w.id] || []);
+  rt.set(w.id, { ...(prev || {}), hist, history: hist.slice(-40).map(([, v]) => v), cfg: c, timer: null });
   syncNode(w, el);
   paint(w.id);
   return el;
@@ -169,6 +169,22 @@ function schedule(id) {
   clearInterval(r.timer);
   r.timer = setInterval(() => { if (!document.hidden) load(id); }, Math.max(10, +r.cfg.refresh || 300) * 1000);
 }
+/* Every number a widget shows is remembered (200 points, beyond.history.v1), so sparklines
+   and the History view survive a reload. */
+const HIST_KEY = "beyond.history.v1", HIST_MAX = 200;
+const histStore = store.get(HIST_KEY, {});
+const saveHist = debounce(() => { if (!previewing) store.set(HIST_KEY, histStore); }, 2000);
+function record(id, r, n) {
+  r.hist.push([Date.now(), n]); if (r.hist.length > HIST_MAX) r.hist.splice(0, r.hist.length - HIST_MAX);
+  r.history = r.hist.slice(-40).map(([, v]) => v);
+  if (!previewing) { histStore[id] = r.hist; saveHist(); }
+}
+function pruneHistory(allBoards) {
+  const ids = new Set(allBoards.flatMap(b => b.widgets.map(w => w.id)));
+  let n = 0; Object.keys(histStore).forEach(id => { if (!ids.has(id)) { delete histStore[id]; n++; } });
+  if (n) store.set(HIST_KEY, histStore);
+}
+
 /* Widgets on the same URL share one request per refresh interval: in-flight requests are joined,
    recent answers reused. A manual refresh (force) always goes to the network. */
 const fetchCache = new Map();   // key → { promise, at }
@@ -186,24 +202,59 @@ function fetchShared(c, maxAge, force) {
   fetchCache.forEach((v, k) => { if (v.at && now - v.at > 3600e3) fetchCache.delete(k); });
   return entry.promise;
 }
+/* Combined widgets: every source in parallel through the shared cache, then the calculation.
+   A failing source is named, so the widget says which one is down. */
+async function loadSources(c, maxAge, force) {
+  const entries = Object.entries(c.sources);
+  const got = await Promise.all(entries.map(async ([name, s]) => {
+    try { return [name, resolve(s, await fetchShared(s, maxAge, force))]; }
+    catch (e) { throw new Error(`The “${name}” source isn't answering. ${errText(e)}`); }
+  }));
+  try { return combine(c, Object.fromEntries(got)); }
+  catch (e) { throw new Error(`Calculation: ${e.message}`); }
+}
 async function load(id, force) {
-  const r = rt.get(id); if (!r || r.loading || r.cfg.missing || r.cfg.needsKey || !r.cfg.url || blockedHost(r.cfg)) return;
+  const r = rt.get(id); if (!r || r.loading || r.cfg.missing || r.cfg.needsKey || !cfgUrls(r.cfg).length || blockedHost(r.cfg)) return;
   r.loading = true;
   try {
-    const data = await fetchShared(r.cfg, Math.max(10, +r.cfg.refresh || 300) * 1000 - 5000, force);
-    r.data = data; r.value = resolve(r.cfg, data); r.error = null; r.updated = Date.now();
+    const maxAge = Math.max(10, +r.cfg.refresh || 300) * 1000 - 5000;
+    if (r.cfg.sources) {
+      const out = await loadSources(r.cfg, maxAge, force);
+      Object.assign(r, { data: out.env, value: out.value, level: out.level });
+    } else { r.data = await fetchShared(r.cfg, maxAge, force); r.value = resolve(r.cfg, r.data); }
+    r.error = null; r.updated = Date.now();
     const n = Number(r.value);
-    if (r.value !== "" && r.value != null && !isNaN(n) && typeof r.value !== "boolean") { r.history.push(n); if (r.history.length > 40) r.history.shift(); }
+    if (r.value !== "" && r.value != null && !isNaN(n) && typeof r.value !== "boolean") record(id, r, n);
   } catch (e) { r.error = errText(e); }
   finally { r.loading = false; paint(id); }
 }
+
+/* ═══ Chart hover ═════════════════════════════════════════ */
+function chartHover(e) {
+  const ch = e.target.closest?.(".chart"); if (!ch) return;
+  const plot = e.target.closest(".ch-plot") || ch.querySelector(".ch-plot");
+  let tip; try { tip = ch._tip ||= JSON.parse(ch.dataset.tip); } catch { return; }
+  const rect = plot.getBoundingClientRect(), f = (e.clientX - rect.left) / rect.width * 100;
+  if (f < -2 || f > 102) return chartLeave(ch);
+  let i = 0; tip.fx.forEach((x, j) => { if (Math.abs(x - f) < Math.abs(tip.fx[i] - f)) i = j; });
+  $$(".ch-guide", ch).forEach(g => { g.hidden = false; g.style.left = tip.fx[i] + "%"; });
+  const box = $(".ch-tip", ch); box.hidden = false; box.replaceChildren();
+  const head = document.createElement("b"); head.textContent = tip.x[i]; box.append(head);
+  tip.s.forEach(s => { const row = document.createElement("span"), key = document.createElement("i"), val = document.createElement("strong");
+    key.className = `${s.c} ${s.k}`; val.textContent = `${s.v[i]}${s.u ? " " + s.u : ""}`; row.append(key, val, document.createTextNode(tip.s.length > 1 ? " " + s.n : "")); box.append(row); });
+  const cr = ch.getBoundingClientRect(), px = rect.left - cr.left + tip.fx[i] / 100 * rect.width;
+  box.style.left = Math.min(Math.max(px - box.offsetWidth / 2, 0), cr.width - box.offsetWidth) + "px";
+}
+function chartLeave(ch) { if (!ch) return; $$(".ch-guide", ch).forEach(g => g.hidden = true); const t = $(".ch-tip", ch); if (t) t.hidden = true; }
+document.addEventListener("pointermove", chartHover);
+document.addEventListener("pointerout", e => { const ch = e.target.closest?.(".chart"); if (ch && !ch.contains(e.relatedTarget)) chartLeave(ch); });
 
 /* ═══ Painting ════════════════════════════════════════════ */
 function render(c, r, cols) {
   if (c.missing) return `<div class="state"><strong>Module not found</strong><span>This widget uses a module that isn't in blueprints.js. Remove it, or update blueprints.js.</span></div>`;
   const blocked = !r.preview && blockedHost(c);
   if (blocked) return `<div class="state"><strong>Not loaded: ${esc(blocked)}</strong><span>This source isn't in Beyond's catalog. Loading it lets that site see your IP address.</span><button data-a="allow">Load ${esc(blocked)}</button></div>`;
-  if (c.needsKey) return `<div class="state"><strong>Add your own key</strong><span>This widget needs ${esc(c.needsKey.label)}. Keys stay in your browser and are never shared.</span>${r.preview ? "" : '<button data-a="edit">Add key</button>'}</div>`;
+  if (c.needsKey) return `<div class="state" title="This widget needs ${esc(c.needsKey.label)}. Keys stay in your browser and are never shared."><strong>Add your own key</strong><span>This widget needs ${esc(c.needsKey.label)}. Keys stay in your browser and are never shared.</span>${r.preview ? "" : '<button data-a="edit">Add key</button>'}</div>`;
   if (r.error && r.value === undefined) return `<div class="state"><strong>No signal</strong><span>${esc(r.error)}</span><button data-a="refresh">Try again</button></div>`;
   if (r.value === undefined && r.data === undefined) return `<div class="skel"><i></i><i></i></div>`;
   return (DISPLAYS[c.display] || DISPLAYS.text)(c, r.value, r, cols);

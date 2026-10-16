@@ -1,14 +1,20 @@
 const test = require("node:test"), assert = require("node:assert/strict");
 const { load } = require("./load");
 const $ = load("js/engine.js", "blueprints.js");
-const buildCfg = $("buildCfg"), MODULES = $("window.MODULES"), BLUEPRINTS = $("window.BLUEPRINTS"), PLACES = $("window.PLACES");
-const DISPLAYS = ["stat", "gauge", "text", "list", "ticker", "image", "beacon", "json"];
+const cfgUrls = $("cfgUrls"), compileExpr = $("compileExpr"), buildCfg = $("buildCfg"), MODULES = $("window.MODULES"), BLUEPRINTS = $("window.BLUEPRINTS"), PLACES = $("window.PLACES");
+const DISPLAYS = ["stat", "gauge", "text", "list", "ticker", "image", "beacon", "json", "chart", "history"];
 const MOD = Object.fromEntries(MODULES.map(m => [m.id, m]));
 
 function checkCfg(c, where) {
   assert.equal(typeof c.name, "string", `${where}: name`);
   if (c.local) { assert.ok(["todo", "note", "pomodoro", "clock", "radio"].includes(c.local), `${where}: local kind`); assert.equal(c.url, undefined, `${where}: local widgets call no API`); return; }
-  assert.match(c.url, /^https:\/\//, `${where}: url must be https (http never works on GitHub Pages)`);
+  const urls = cfgUrls(c);
+  assert.ok(urls.length, `${where}: no url or sources`);
+  urls.forEach(u => assert.match(u, /^https:\/\//, `${where}: url must be https (http never works on GitHub Pages)`));
+  if (c.sources) {
+    [c.value, c.okIf, c.warnIf, ...Object.values(c.calc || {})].filter(Boolean).forEach(ex => assert.doesNotThrow(() => compileExpr(ex), `${where}: bad expression ${ex}`));
+    assert.ok(c.value || c.template, `${where}: combined widget needs a value`);
+  }
   assert.ok(DISPLAYS.includes(c.display), `${where}: display ${c.display}`);
   assert.ok(c.displays.every(d => DISPLAYS.includes(d)), `${where}: displays`);
   assert.ok(+c.refresh >= 10, `${where}: refresh`);

@@ -79,3 +79,9 @@ test("at most 100 widgets are imported", async () => {
   const ws = Array.from({ length: 500 }, () => ({ b: "bp_cat_fact" }));
   assert.equal(hydrate({ ws }, MODS, BANK).widgets.length, 100);
 });
+
+test("a custom chart keeps its fields and its grid position through a link", async () => {
+  const b = { title: "C", widgets: [{ id: "c1", name: "ETH", url: "https://api.example.com/x", path: "prices", display: "chart", chart: "line", xField: "[0]", yFields: ["[1]"], x: 2, y: 3, w: 4, h: 2 }] };
+  const [w] = hydrate(await decode(await encode(share(b).payload)), MODS, BANK).widgets;
+  assert.deepEqual([w.x, w.y, w.w, w.h, w.xField, w.yFields, w.chart, w.display], [2, 3, 4, 2, "[0]", ["[1]"], "line", "chart"]);
+});

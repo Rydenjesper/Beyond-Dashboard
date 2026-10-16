@@ -11,10 +11,17 @@
 
   Every API here is free, needs no key, and answers browser requests (CORS).
 
-  Display types: stat | gauge | text | list | ticker | image | beacon | json
+  Display types: stat | gauge | text | list | ticker | image | beacon | json | chart | history
+    chart: path → array of points; xField: time/label field; yFields: field, or [{ y, label, unit, kind: line|area|bar, panel }];
+           chart: line|area|bar; xFormat: hour|time|date|day|month; mark: min|max. Different units → separate panels.
+    history: the widget's own recorded values over time (offered for every stat).
   Option fields a module choice can carry:
     unit, prefix, decimals, min, max, format (time|date|duration|compact|wmo), ok, warn,
     displays: which display types make sense, first one is the default
+
+  Combined widgets: build() returns sources instead of url:
+    { sources: { gold: { url, path }, fx: { url, path } }, calc: { kg: "gold * 32.15" }, value: "kg * fx",
+      okIf, warnIf (beacon color), words: { ok, warn, bad } }. Expressions: js/engine.js (evalExpr), no eval.
 
   Local widgets (no API): a module whose build() returns { local: "todo" | "note" | "pomodoro" | "clock" | "radio" }.
     They are drawn by js/local.js and keep their content in beyond.local.v1, outside the board.
@@ -58,10 +65,12 @@ window.MODULES = [
       { key: "vat", label: "VAT", type: "choice", default: "ex", options: [
         { value: "ex", label: "Excl. VAT", scale: 100 }, { value: "inc", label: "Incl. VAT (25%)", scale: 125 },
       ] },
+      { key: "show", label: "Show", type: "choice", default: "now", options: [
+        { value: "now", label: "Now", displays: ["gauge", "stat"] }, { value: "day", label: "Whole day", displays: ["chart"] } ] },
     ],
-    displays: ["gauge", "stat"],
-    build: p => ({ name: `Electricity ${p.zone}${p.vat === "inc" ? " incl. VAT" : ""}`, url: `https://www.elprisetjustnu.se/api/v1/prices/{YYYY}/{MM}-{DD}_${p.zone}.json`,
-      path: "[now].SEK_per_kWh", unit: "öre/kWh", decimals: 1, min: 0, max: 300, refresh: 900 }) },
+    build: p => ({ name: `Electricity ${p.zone}${p.show === "day" ? " today" : ""}${p.vat === "inc" ? " incl. VAT" : ""}`, url: `https://www.elprisetjustnu.se/api/v1/prices/{YYYY}/{MM}-{DD}_${p.zone}.json`,
+      unit: "öre/kWh", decimals: 1, min: 0, max: 300, refresh: 900,
+      ...(p.show === "day" ? { path: "", xField: "time_start", yFields: "SEK_per_kWh", chart: "bar", xFormat: "hour", mark: "min", size: [3, 2] } : { path: "[now].SEK_per_kWh" }) }) },
 
   { id: "polisen", name: "Swedish police", category: "sweden",
     desc: "The latest police events, for all of Sweden or one county or town.",
@@ -92,8 +101,23 @@ window.MODULES = [
         { value: "is_day", label: "Daylight", ok: [1], displays: ["beacon"] },
       ] },
       { key: "place", label: "Where", type: "place", default: P["Stockholm"] },
+      { key: "src", label: "Source", type: "choice", default: "meteo", options: [
+        { value: "meteo", label: "Open-Meteo" }, { value: "smhi", label: "SMHI (Nordics)" }, { value: "wttr", label: "wttr.in" } ] },
     ],
-    build: (p, s) => ({ name: `${s.metric.label} · ${p.place.name}`, url: meteo("api.open-meteo.com/v1/forecast", p, p.metric), path: `current.${p.metric}` }) },
+    build: (p, s) => {
+      const name = `${s.metric.label} · ${p.place.name}`;
+      /* SMHI and wttr.in only know some metrics; anything else stays on Open-Meteo. */
+      const smhi = { temperature_2m: ["air_temperature"], wind_speed_10m: ["wind_speed", 3.6], wind_gusts_10m: ["wind_speed_of_gust", 3.6], relative_humidity_2m: ["relative_humidity"],
+        precipitation: ["precipitation_amount_mean"], surface_pressure: ["air_pressure_at_mean_sea_level"] }[p.metric];
+      const wttr = { temperature_2m: "temp_C", apparent_temperature: "FeelsLikeC", wind_speed_10m: "windspeedKmph", relative_humidity_2m: "humidity", cloud_cover: "cloudcover",
+        precipitation: "precipMM", surface_pressure: "pressure", uv_index: "uvIndex" }[p.metric];
+      if (p.src === "smhi" && smhi) return { name: `${name} · SMHI`, refresh: 1800, ...(smhi[1] ? { scale: smhi[1] } : {}),
+        url: `https://opendata-download-metfcst.smhi.se/api/category/snow1g/version/1/geotype/point/lon/${(+p.place.lon).toFixed(4)}/lat/${(+p.place.lat).toFixed(4)}/data.json`,
+        transform: d => ({ now: (d.timeSeries || []).find(x => Date.parse(x.time) >= Date.now() - 30 * 60e3)?.data }), path: `now.${smhi[0]}` };
+      if (p.src === "wttr" && wttr) return { name: `${name} · wttr.in`, refresh: 1800,
+        url: `https://wttr.in/${(+p.place.lat).toFixed(3)},${(+p.place.lon).toFixed(3)}?format=j1`, path: `current_condition[0].${wttr}` };
+      return { name, url: meteo("api.open-meteo.com/v1/forecast", p, p.metric), path: `current.${p.metric}` };
+    } },
 
   { id: "air", name: "Air quality", category: "earth",
     desc: "Pollution, smog and pollen for any location.",
@@ -191,6 +215,227 @@ window.MODULES = [
     build: (p, s) => ({ name: `${s.service.label} status`, url: `https://${p.service}/api/v2/status.json`, path: "status.indicator", ok: ["none"], warn: ["minor"], refresh: 120 }) },
 
   /* ── Personal: no API. Content lives on this device (beyond.local.v1) and never in share links. */
+  { id: "forecast", name: "Weather forecast", category: "weather",
+    desc: "The next one or two days, hour by hour, for any place.",
+    params: [
+      { key: "show", label: "Show", type: "choice", default: "temp", options: [
+        { value: "temp", label: "Temperature and rain" }, { value: "wind", label: "Wind and gusts" } ] },
+      { key: "hours", label: "Next", type: "choice", default: "48", options: [{ value: "24", label: "24 hours" }, { value: "48", label: "48 hours" }] },
+      { key: "place", label: "Where", type: "place", default: P["Stockholm"] },
+    ],
+    displays: ["chart"],
+    build: p => ({ name: `${p.show === "temp" ? "Forecast" : "Wind"} · ${p.place.name}`, size: [4, 2], refresh: 1800, decimals: 1,
+      url: `https://api.open-meteo.com/v1/forecast?latitude=${p.place.lat}&longitude=${p.place.lon}&hourly=${p.show === "temp" ? "temperature_2m,precipitation" : "wind_speed_10m,wind_gusts_10m"}&forecast_hours=${p.hours}&timezone=auto`,
+      transform: d => ({ hours: (d.hourly?.time || []).map((t, i) => ({ t, a: d.hourly[p.show === "temp" ? "temperature_2m" : "wind_speed_10m"][i], b: d.hourly[p.show === "temp" ? "precipitation" : "wind_gusts_10m"][i] })) }),
+      path: "hours", xField: "t", xFormat: "hour",
+      yFields: p.show === "temp" ? [{ y: "a", label: "Temperature", unit: "°C" }, { y: "b", label: "Rain", unit: "mm", kind: "bar", panel: 1 }]
+        : [{ y: "a", label: "Wind", unit: "km/h" }, { y: "b", label: "Gusts", unit: "km/h" }] }) },
+
+  { id: "coin_chart", name: "Crypto chart", category: "money",
+    desc: "A coin's price over the last day, week, month or quarter (CoinGecko).",
+    params: [
+      { key: "coin", label: "Coin", type: "choice", default: "bitcoin", options: [
+        { value: "bitcoin", label: "Bitcoin" }, { value: "ethereum", label: "Ethereum" }, { value: "solana", label: "Solana" },
+        { value: "ripple", label: "XRP" }, { value: "dogecoin", label: "Dogecoin" }, { value: "cardano", label: "Cardano" } ] },
+      { key: "days", label: "Over the last", type: "choice", default: "7", options: [
+        { value: "1", label: "Day" }, { value: "7", label: "Week" }, { value: "30", label: "Month" }, { value: "90", label: "Quarter" } ] },
+      { key: "fiat", label: "In", type: "choice", default: "usd", options: [{ value: "usd", label: "USD" }, { value: "eur", label: "EUR" }, { value: "sek", label: "SEK" }] },
+    ],
+    displays: ["chart"],
+    build: (p, s) => ({ name: `${s.coin.label} · ${s.days.label.toLowerCase()}`, size: [3, 2], refresh: 900,
+      url: `https://api.coingecko.com/api/v3/coins/${p.coin}/market_chart?vs_currency=${p.fiat}&days=${p.days}`,
+      transform: d => ({ prices: (d.prices || []).map(([t, v]) => ({ t, v })) }),
+      path: "prices", xField: "t", yFields: [{ y: "v", label: s.coin.label, unit: p.fiat.toUpperCase() }], chart: "line", mark: "max" }) },
+
+  { id: "wiki_views", name: "Wikipedia page views", category: "knowledge",
+    desc: "How many people read an article each day: a hype meter for anything.",
+    params: [
+      { key: "article", label: "Article", type: "text", default: "Taylor Swift", placeholder: "Exact article title" },
+      { key: "lang", label: "Wikipedia", type: "choice", default: "en", options: [
+        { value: "en", label: "English" }, { value: "sv", label: "Svenska" }, { value: "de", label: "Deutsch" }, { value: "fr", label: "Français" } ] },
+      { key: "days", label: "Over the last", type: "choice", default: "30", options: [{ value: "30", label: "30 days" }, { value: "90", label: "90 days" }] },
+    ],
+    displays: ["chart"],
+    build: p => ({ name: `${p.article} · views`, size: [3, 2], refresh: 21600,
+      url: `https://wikimedia.org/api/rest_v1/metrics/pageviews/per-article/${p.lang}.wikipedia/all-access/user/${encodeURIComponent(p.article.trim().replace(/ /g, "_"))}/daily/{ymd:-${p.days}}/{ymd:-1}`,
+      path: "items", xField: "timestamp", yFields: [{ y: "views", label: "Views", unit: "" }], chart: "area", mark: "max", xFormat: "date" }) },
+
+  /* ── Economy */
+  { id: "ecb", name: "ECB interest rate", category: "money",
+    desc: "The European Central Bank's key rates, now or over the last two years.",
+    params: [
+      { key: "rate", label: "Rate", type: "choice", default: "DFR", options: [
+        { value: "DFR", label: "Deposit facility" }, { value: "MRR_FR", label: "Main refinancing" }, { value: "MLFR", label: "Marginal lending" } ] },
+      { key: "show", label: "Show", type: "choice", default: "now", options: [
+        { value: "now", label: "Now", displays: ["stat"] }, { value: "chart", label: "Two years", displays: ["chart"] } ] },
+    ],
+    build: (p, s) => ({ name: `ECB ${s.rate.label.toLowerCase()} rate`, unit: "%", decimals: 2, refresh: 21600,
+      url: `https://data-api.ecb.europa.eu/service/data/FM/D.U2.EUR.4F.KR.${p.rate}.LEV?${p.show === "now" ? "lastNObservations=1" : "startPeriod={date:-730}"}&format=jsondata`,
+      transform: d => { const obs = Object.values(d.dataSets?.[0]?.series || {})[0]?.observations || {}, days = d.structure?.dimensions?.observation?.[0]?.values || [];
+        const pts = Object.entries(obs).map(([i, v]) => ({ t: days[+i]?.id, v: v[0] })).filter(x => x.t && x.v != null);
+        return { points: pts.filter((x, i) => i % 7 === 0 || i === pts.length - 1 || x.v !== pts[i - 1]?.v) }; },   // weekly, plus every change
+      ...(p.show === "now" ? { path: "points[-1].v" } : { path: "points", xField: "t", yFields: [{ y: "v", label: "Rate", unit: "%" }], chart: "line", size: [3, 2] }) }) },
+
+  { id: "eurostat", name: "Inflation and unemployment", category: "money",
+    desc: "Eurostat figures for any EU country: annual inflation (HICP) or the unemployment rate, monthly.",
+    params: [
+      { key: "what", label: "Show", type: "choice", default: "infl", options: [{ value: "infl", label: "Inflation" }, { value: "unemp", label: "Unemployment" }] },
+      { key: "geo", label: "Country", type: "choice", default: "SE", options: [
+        ["EU27_2020", "EU"], ["EA20", "Euro area"], ["SE", "Sweden"], ["DK", "Denmark"], ["FI", "Finland"], ["DE", "Germany"], ["FR", "France"],
+        ["ES", "Spain"], ["IT", "Italy"], ["NL", "Netherlands"], ["PL", "Poland"], ["NO", "Norway"]].map(([value, label]) => ({ value, label })) },
+      { key: "show", label: "As", type: "choice", default: "chart", options: [
+        { value: "chart", label: "Last two years", displays: ["chart"] }, { value: "now", label: "Latest", displays: ["stat"] } ] },
+    ],
+    build: (p, s) => ({ name: `${p.what === "infl" ? "Inflation" : "Unemployment"} · ${s.geo.label}`, unit: "%", decimals: 1, refresh: 43200,
+      url: `https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/${p.what === "infl" ? "prc_hicp_manr?coicop=CP00" : "une_rt_m?s_adj=SA&age=TOTAL&sex=T&unit=PC_ACT"}&geo=${p.geo}&lastTimePeriod=24`,
+      transform: d => ({ points: Object.entries(d.dimension?.time?.category?.index || {}).sort((a, b) => a[1] - b[1]).map(([t, i]) => ({ t: `${t}-01`, v: d.value?.[i] })).filter(x => x.v != null) }),
+      ...(p.show === "now" ? { path: "points[-1].v" } : { path: "points", xField: "t", yFields: [{ y: "v", label: p.what === "infl" ? "Inflation" : "Unemployment", unit: "%" }], chart: p.what === "infl" ? "bar" : "line", xFormat: "month", size: [3, 2] }) }) },
+
+  { id: "stocks", name: "Stocks and oil", category: "money",
+    desc: "Share prices and oil from Alpha Vantage. Needs your own free key (25 calls a day, so it refreshes hourly).",
+    params: [
+      { key: "what", label: "Show", type: "choice", default: "quote", options: [{ value: "quote", label: "A stock" }, { value: "WTI", label: "Oil (WTI)" }, { value: "BRENT", label: "Oil (Brent)" }] },
+      { key: "symbol", label: "Ticker", type: "text", default: "IBM", placeholder: "AAPL, MSFT, VOLV-B.ST…", upper: true },
+      { key: "key", label: "Alpha Vantage key", type: "secret", help: "https://www.alphavantage.co/support/#api-key", store: "alphavantage" },
+    ],
+    displays: ["stat"],
+    build: p => { const av = d => { if (d.Information || d.Note || d["Error Message"]) throw new Error(`Alpha Vantage: ${d.Information || d.Note || d["Error Message"]}`); return d; };
+      return p.what === "quote"
+      ? { name: p.symbol, url: `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${encodeURIComponent(p.symbol)}&apikey=${encodeURIComponent(p.key)}`, refresh: 3600, decimals: 2,
+          transform: d => ({ price: av(d)["Global Quote"]?.["05. price"] }), path: "price" }
+      : { name: `Oil · ${p.what}`, url: `https://www.alphavantage.co/query?function=${p.what}&interval=daily&apikey=${encodeURIComponent(p.key)}`, refresh: 3600, decimals: 2, unit: "$/bbl",
+          transform: av, path: "data[0].value" }; } },
+
+  /* ── Sweden: energy and warnings */
+  { id: "svk", name: "Sweden's electricity use", category: "sweden",
+    desc: "National consumption today from Svenska kraftnät: the forecast against what actually happened, hour by hour.",
+    params: [{ key: "area", label: "Area", type: "choice", default: "SE", options: [
+      { value: "SE", label: "All of Sweden" }, { value: "SE1", label: "SE1" }, { value: "SE2", label: "SE2" }, { value: "SE3", label: "SE3" }, { value: "SE4", label: "SE4" } ] }],
+    displays: ["chart"],
+    build: (p, s) => ({ name: `Electricity use · ${s.area.label}`, size: [4, 2], refresh: 900, decimals: 0,
+      url: `https://www.svk.se/services/controlroom/v2/situation?date={YYYY}-{MM}-{DD}&biddingArea=${p.area}`,
+      transform: d => { const by = id => Object.fromEntries((d.Data || []).find(x => x.id === id)?.data.map(o => [o.x, o.y]) || []), plan = by("planned"), real = by("result");
+        return { hours: [...new Set([...Object.keys(plan), ...Object.keys(real)])].map(Number).sort((a, b) => a - b).map(t => ({ t, plan: plan[t], real: real[t] })) }; },
+      path: "hours", xField: "t", xFormat: "hour", yFields: [{ y: "real", label: "Actual", unit: "MW" }, { y: "plan", label: "Forecast", unit: "MW" }] }) },
+
+  { id: "smhi_warn", name: "SMHI weather warnings", category: "sweden",
+    desc: "Active warnings from SMHI for your county: wind, rain, snow, fire risk, high water. Green when there are none.",
+    params: [
+      { key: "county", label: "County", type: "choice", default: "all", options: [{ value: "all", label: "All of Sweden" }, ...["Stockholms", "Uppsala", "Södermanlands", "Östergötlands", "Jönköpings", "Kronobergs", "Kalmar", "Gotlands", "Blekinge", "Skåne", "Hallands", "Västra Götalands", "Värmlands", "Örebro", "Västmanlands", "Dalarnas", "Gävleborgs", "Västernorrlands", "Jämtlands", "Västerbottens", "Norrbottens"].map(n => ({ value: `${n} län`, label: n.replace(/s$/, "").replace(/^Skåne$/, "Skåne") }))] },
+      { key: "show", label: "Show", type: "choice", default: "light", options: [{ value: "light", label: "Status light", displays: ["beacon"] }, { value: "list", label: "List", displays: ["list"] }] },
+    ],
+    build: (p, s) => {
+      const LV = { MESSAGE: 1, YELLOW: 2, ORANGE: 3, RED: 4 };
+      const transform = d => ({ items: (Array.isArray(d) ? d : []).flatMap(w => (w.warningAreas || [])
+        .filter(a => p.county === "all" || (a.affectedAreas || []).some(x => x.sv === p.county) || a.areaName?.sv === p.county)
+        .map(a => ({ level: a.warningLevel?.en || "", n: LV[a.warningLevel?.code] || 0, event: a.eventDescription?.en || w.event?.en || "", area: a.areaName?.sv || "" })))
+        .sort((a, b) => b.n - a.n) });
+      const name = `SMHI warnings · ${s.county.label}`, url = "https://opendata-download-warnings.smhi.se/ibww/api/version/1/warning.json";
+      return p.show === "list" ? { name, url, transform, path: "items", item: "{level} · {event} · {area}", refresh: 900 }
+        : { name, refresh: 900, sources: { w: { url, path: "items", transform } },
+            calc: { worst: "max(0, w[*].n)", many: "count(w[*].n)" },
+            okIf: "worst <= 1", warnIf: "worst == 2",
+            value: `if(many == 0, "No warnings", if(worst <= 1, many + " notice" + if(many == 1, "", "s"), w[0].level + ": " + w[0].event))`,
+            words: { ok: "No warnings", warn: "Yellow warning", bad: "Warning" } };
+    } },
+
+  /* ── Combined: several sources, one answer. Sources load in parallel through the shared cache. */
+  { id: "metal", name: "Gold and silver", category: "money",
+    desc: "Live metal prices in your currency, per gram, ounce or kilo. Combines gold-api.com with today's exchange rate.",
+    params: [
+      { key: "metal", label: "Metal", type: "choice", default: "XAU", options: [
+        { value: "XAU", label: "Gold" }, { value: "XAG", label: "Silver" }, { value: "XPT", label: "Platinum" }, { value: "XPD", label: "Palladium" } ] },
+      { key: "cur", label: "In", type: "choice", default: "SEK", options: [
+        { value: "SEK", label: "SEK", unit: "kr" }, { value: "EUR", label: "EUR", prefix: "€" }, { value: "USD", label: "USD", prefix: "$" }, { value: "NOK", label: "NOK", unit: "kr" } ] },
+      { key: "per", label: "Per", type: "choice", default: "g", options: [
+        { value: "g", label: "Gram" }, { value: "oz", label: "Troy ounce" }, { value: "kg", label: "Kilo" } ] },
+    ],
+    displays: ["stat"],
+    build: (p, s) => ({ name: `${s.metal.label} · ${p.cur}/${p.per}`, refresh: 600, decimals: p.per === "g" ? 2 : 0,
+      sources: { m: { url: `https://api.gold-api.com/price/${p.metal}`, path: "price" }, fx: { url: "https://open.er-api.com/v6/latest/USD", path: `rates.${p.cur}` } },
+      value: `m * fx${{ g: " / 31.1035", oz: "", kg: " * 32.1507" }[p.per]}` }) },
+
+  { id: "aurora", name: "Northern lights tonight?", category: "space",
+    desc: "Green when the aurora is strong enough, the sky is clear and it's dark where you are. Kp from NOAA, clouds from Open-Meteo.",
+    params: [{ key: "place", label: "Where", type: "place", default: P["Tromsø"] }],
+    displays: ["beacon"],
+    build: p => ({ name: `Aurora · ${p.place.name}`, refresh: 600,
+      sources: { kp: { url: "https://services.swpc.noaa.gov/json/planetary_k_index_1m.json", path: "[-1].estimated_kp" },
+        sky: { url: `https://api.open-meteo.com/v1/forecast?latitude=${p.place.lat}&longitude=${p.place.lon}&current=cloud_cover,is_day`, path: "current" } },
+      calc: { clouds: "sky.cloud_cover", dark: "sky.is_day == 0", strong: "kp >= 4" },
+      okIf: "strong and clouds < 40 and dark", warnIf: "strong + (clouds < 40) + dark >= 2",
+      value: `if(not strong, "Kp " + round(kp, 1) + ", too low", if(clouds >= 40, round(clouds) + "% cloud cover", if(not dark, "Kp " + round(kp, 1) + ", but it's still light", "Kp " + round(kp, 1) + ", clear and dark")))`,
+      words: { ok: "Look up!", warn: "Maybe", bad: "Not now" } }) },
+
+  { id: "iss_far", name: "How far is the ISS?", category: "space",
+    desc: "The space station's distance from you, along the ground, right now.",
+    params: [{ key: "place", label: "From", type: "place", default: P["Stockholm"] }],
+    displays: ["stat", "history"],
+    build: p => ({ name: `ISS from ${p.place.name}`, refresh: 30, unit: "km", decimals: 0,
+      sources: { iss: { url: "https://api.wheretheiss.at/v1/satellites/25544", path: "" } },
+      value: `distance(iss.latitude, iss.longitude, ${+p.place.lat}, ${+p.place.lon})` }) },
+
+  { id: "vs_pole", name: "Home vs the South Pole", category: "weather",
+    desc: "How much warmer (it's always warmer) your place is than the South Pole right now.",
+    params: [{ key: "place", label: "Where", type: "place", default: P["Stockholm"] }],
+    displays: ["text"],
+    build: p => { const name = String(p.place.name).replace(/["\\]/g, "");
+      return { name: `${name} vs the South Pole`, refresh: 1800,
+        sources: { here: { url: `https://api.open-meteo.com/v1/forecast?latitude=${p.place.lat}&longitude=${p.place.lon}&current=temperature_2m`, path: "current.temperature_2m" },
+          pole: { url: "https://api.open-meteo.com/v1/forecast?latitude=-89.99&longitude=0&current=temperature_2m", path: "current.temperature_2m" } },
+        value: `"It's " + round(abs(here - pole)) + " °C " + if(here >= pole, "warmer", "colder") + " in ${name} than at the South Pole."` }; } },
+
+  { id: "el_cheap", name: "Is electricity cheap now?", category: "sweden",
+    desc: "This quarter-hour's price against today's average in your zone. Green when it's at least 10% cheaper.",
+    params: [{ key: "zone", label: "Bidding zone", type: "choice", default: "SE3", options: [
+      { value: "SE1", label: "SE1 Luleå" }, { value: "SE2", label: "SE2 Sundsvall" }, { value: "SE3", label: "SE3 Stockholm" }, { value: "SE4", label: "SE4 Malmö" } ] }],
+    displays: ["beacon"],
+    build: p => ({ name: `Cheap power? ${p.zone}`, refresh: 300,
+      sources: { p: { url: `https://www.elprisetjustnu.se/api/v1/prices/{YYYY}/{MM}-{DD}_${p.zone}.json`, path: "" } },
+      calc: { now: "p[now].SEK_per_kWh * 100", avg: "avg(p[*].SEK_per_kWh) * 100", diff: "(1 - now / avg) * 100" },
+      okIf: "diff >= 10", warnIf: "diff > -10",
+      value: `if(diff >= 0, round(diff) + "% cheaper", round(-diff) + "% pricier") + " than today's average · " + round(now, 1) + " öre/kWh"`,
+      words: { ok: "Cheap now", warn: "Average", bad: "Expensive now" } }) },
+
+  { id: "btc_mood", name: "Bitcoin and market mood", category: "money",
+    desc: "Bitcoin's price in your currency next to the Fear & Greed index.",
+    params: [{ key: "cur", label: "In", type: "choice", default: "SEK", options: [
+      { value: "SEK", label: "SEK" }, { value: "EUR", label: "EUR" }, { value: "USD", label: "USD" } ] }],
+    displays: ["text"],
+    build: p => ({ name: `Bitcoin · ${p.cur} and mood`, refresh: 120,
+      sources: { b: { url: `https://api.coinbase.com/v2/prices/BTC-${p.cur}/spot`, path: "data.amount" }, f: { url: "https://api.alternative.me/fng/", path: "data[0]" } },
+      value: `format(b, 0) + " ${p.cur} · " + f.value_classification + " (" + f.value + ")"` }) },
+
+  { id: "umbrella", name: "Umbrella for the bus?", category: "sweden",
+    desc: "Your next SL departure and whether it will rain in the next hour.",
+    params: [
+      { key: "stop", label: "Stop", type: "search", search: "sl_sites", default: { value: "9192", label: "Slussen" }, placeholder: "Search a stop…" },
+      { key: "line", label: "Line", type: "text", default: "", placeholder: "Any line, or e.g. 4" },
+      { key: "place", label: "Rain where", type: "place", default: P["Stockholm"] },
+    ],
+    displays: ["text"],
+    build: p => ({ name: `${p.stop.label}: umbrella?`, refresh: 60,
+      sources: { d: { url: `https://transport.integration.sl.se/v1/sites/${encodeURIComponent(p.stop.value)}/departures?forecast=60${/^\w{1,6}$/.test(p.line.trim()) ? `&line=${p.line.trim()}` : ""}`, path: "departures[0]" },
+        rain: { url: `https://api.open-meteo.com/v1/forecast?latitude=${p.place.lat}&longitude=${p.place.lon}&minutely_15=precipitation&forecast_minutely_15=4`, path: "minutely_15.precipitation" } },
+      value: `d.line.designation + " " + d.destination + " " + if(d.display == "Nu", "now", if(d.state == "CANCELLED", "cancelled", d.display)) + " · " + if(sum(rain) > 0.2, "take an umbrella", "no umbrella needed")` }) },
+
+  { id: "brief", name: "Morning brief", category: "knowledge",
+    desc: "Weather at home, the next public holiday, the next rocket launch and the electricity price, in one card.",
+    params: [
+      { key: "place", label: "Home", type: "place", default: P["Stockholm"] },
+      { key: "zone", label: "Electricity zone", type: "choice", default: "SE3", options: [
+        { value: "none", label: "Skip" }, { value: "SE1", label: "SE1" }, { value: "SE2", label: "SE2" }, { value: "SE3", label: "SE3" }, { value: "SE4", label: "SE4" } ] },
+      { key: "country", label: "Holidays in", type: "text", default: "SE", placeholder: "SE, NO, DE…", upper: true },
+    ],
+    displays: ["text"],
+    build: p => { const cc = /^[A-Z]{2}$/.test(p.country) ? p.country : "SE";
+      return { name: "Morning brief", refresh: 1800, size: [4, 1],
+        sources: { w: { url: `https://api.open-meteo.com/v1/forecast?latitude=${p.place.lat}&longitude=${p.place.lon}&current=temperature_2m,weather_code`, path: "current" },
+          h: { url: `https://date.nager.at/api/v3/NextPublicHolidays/${cc}`, path: "[0]" },
+          l: { url: "https://ll.thespacedevs.com/2.3.0/launches/upcoming/?limit=10&mode=list&hide_recent_previous=true", path: "results[0]" },
+          ...(p.zone !== "none" ? { e: { url: `https://www.elprisetjustnu.se/api/v1/prices/{YYYY}/{MM}-{DD}_${p.zone}.json`, path: "[now].SEK_per_kWh" } } : {}) },
+        value: `round(w.temperature_2m) + "° and " + weather(w.weather_code) + " · " + h.localName + " " + countdown(h.date) + " · " + l.name + " " + countdown(l.net)${p.zone !== "none" ? ` + " · power " + round(e * 100) + " öre"` : ""}` }; } },
+
   { id: "todo", name: "To-do list", category: "personal", desc: "Add, tick off, drag to reorder. Each list keeps its own tasks.",
     params: [{ key: "title", label: "List name", type: "text", default: "To do", placeholder: "Groceries, This week…" }],
     displays: ["local"], build: p => ({ name: p.title || "To do", local: "todo", size: [2, 2] }) },
@@ -292,11 +537,16 @@ window.MODULES = [
         { value: "hour", label: "Hour" }, { value: "day", label: "Day" }, { value: "week", label: "Week" }, { value: "month", label: "Month" },
       ] },
     ],
-    displays: ["list", "stat"],
+    displays: ["list", "stat", "chart"],
     build: (p, s, display) => ({
       name: `${s.mag.label === "All" ? "All" : s.mag.label} quakes · ${s.period.label.toLowerCase()}`,
       url: `https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/${p.mag}_${p.period}.geojson`,
-      path: display === "stat" ? "metadata.count" : "features", item: "M{properties.mag} · {properties.place}", unit: display === "stat" ? "quakes" : undefined, refresh: 600 }) },
+      path: display === "stat" ? "metadata.count" : "features", item: "M{properties.mag} · {properties.place}", unit: display === "stat" ? "quakes" : undefined, refresh: 600,
+      ...(display === "chart" ? { path: "buckets", xField: "t", yFields: [{ y: "n", label: "Quakes", unit: "" }], chart: "bar", size: [3, 2],
+        transform: d => { const size = ["hour", "day"].includes(p.period) ? (p.period === "hour" ? 300e3 : 3600e3) : 86400e3, end = Math.ceil(Date.now() / size) * size,
+          n = { hour: 12, day: 24, week: 7, month: 30 }[p.period], buckets = Array.from({ length: n }, (_, i) => ({ t: end - (n - i) * size, n: 0 }));
+          (d.features || []).forEach(f => { const i = Math.floor((f.properties.time - (end - n * size)) / size); if (buckets[i]) buckets[i].n++; });
+          return { buckets }; } } : {}) }) },
 
   // ── LAUNCHES ─────────────────────────────────────────────
   { id: "launches", name: "Rocket launches", category: "space",
@@ -430,6 +680,16 @@ window.BLUEPRINTS = [
     url: "https://api.carbonintensity.org.uk/intensity", path: "data[0].intensity.forecast", display: "gauge", min: 0, max: 400, unit: "gCO₂/kWh", decimals: 0, refresh: 1800 },
   { id: "bp_btc_fees", name: "Bitcoin fee, next block", desc: "Fee needed to get into the next block.", category: "money",
     url: "https://mempool.space/api/v1/fees/recommended", path: "fastestFee", display: "stat", unit: "sat/vB", refresh: 60 },
+  { id: "bp_btc_paprika", name: "Bitcoin (Coinpaprika)", desc: "Price from Coinpaprika, a second opinion next to Coinbase.", category: "money",
+    url: "https://api.coinpaprika.com/v1/tickers/btc-bitcoin", path: "quotes.USD.price", display: "stat", prefix: "$", decimals: 0, refresh: 300 },
+  { id: "bp_btc_sek_bci", name: "Bitcoin in SEK (Blockchain.com)", desc: "The last trade price in kronor from Blockchain.com.", category: "money",
+    url: "https://blockchain.info/ticker", path: "SEK.last", display: "stat", unit: "kr", decimals: 0, refresh: 300 },
+  { id: "bp_us_tbill", name: "US Treasury bill rate", desc: "Average interest the US government pays on its short-term debt.", category: "money",
+    url: "https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v2/accounting/od/avg_interest_rates?sort=-record_date&page%5Bsize%5D=1&filter=security_desc:eq:Treasury%20Bills",
+    path: "data[0].avg_interest_rate_amt", display: "stat", unit: "%", decimals: 2, refresh: 43200 },
+  { id: "bp_us_tbill_chart", name: "US Treasury bill rate, 2 years", desc: "Monthly average rate on US Treasury bills.", category: "money",
+    url: "https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v2/accounting/od/avg_interest_rates?sort=-record_date&page%5Bsize%5D=24&filter=security_desc:eq:Treasury%20Bills",
+    path: "data", xField: "record_date", yFields: [{ y: "avg_interest_rate_amt", label: "Rate", unit: "%" }], chart: "line", xFormat: "month", decimals: 2, display: "chart", refresh: 43200 },
   { id: "bp_btc_height", name: "Bitcoin block height", desc: "Blocks mined since 2009.", category: "money",
     url: "https://mempool.space/api/blocks/tip/height", path: "", display: "stat", decimals: 0, refresh: 120 },
   { id: "bp_fear_greed", name: "Crypto fear & greed", desc: "Market mood from 0 (panic) to 100 (euphoria).", category: "money",

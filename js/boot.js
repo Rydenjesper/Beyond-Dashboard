@@ -16,7 +16,7 @@ $$("dialog").forEach(d => d.addEventListener("click", e => { if (e.target === d)
 $("#config").addEventListener("close", () => cfgCtrl?.abort());
 document.addEventListener("visibilitychange", () => { if (!document.hidden) rt.forEach((r, id) => { if (r.updated && Date.now() - r.updated > (r.cfg.refresh || 300) * 1000) load(id); }); });
 
-pruneLocal(boards.boards);
+pruneLocal(boards.boards); pruneHistory(boards.boards);
 (async function boot() {
   const m = location.hash.match(/#d=(.+)$/);
   if (m) { try { enterPreview(hydrateShared(await decode(m[1]))); return; } catch { toast("Couldn't open that share link"); } }

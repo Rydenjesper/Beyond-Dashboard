@@ -7,8 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="vendor/gridstack.min.css?v=4">
-<link rel="stylesheet" href="css/app.css?v=4">
+<link rel="stylesheet" href="vendor/gridstack.min.css?v=5">
+<link rel="stylesheet" href="css/app.css?v=5">
 </head>
 <body>
 
@@ -77,15 +77,22 @@
   <div class="d-body">
     <div class="ed">
       <div class="fields">
-        <div class="f full"><label for="e_url">Endpoint URL</label>
+        <div class="f full only-combine"><span class="lbl">Sources</span>
+          <div class="chips src-chips" id="e_srcChips"></div>
+          <div class="src-name"><label for="e_srcName">Name in the calculation</label><input id="e_srcName" class="mono" maxlength="20" placeholder="gold"></div></div>
+        <div class="f full"><label for="e_url" id="e_urlLbl">Endpoint URL</label>
           <div class="url-row"><input id="e_url" class="mono" required placeholder="https://api.example.com/v1/thing"><button class="btn" type="button" id="e_test">Fetch</button></div>
-          <small>Must allow browser requests (CORS). Placeholders: {YYYY} {MM} {DD} {rand:1-100}</small></div>
+          <small>Must allow browser requests (CORS). Placeholders: {YYYY} {MM} {DD} {date:-7} {rand:1-100}</small>
+          <button type="button" class="linkish no-combine" id="e_combine">Combine several sources into one value…</button></div>
+        <div class="f full only-combine"><label for="e_value">Calculation</label><input id="e_value" class="mono" placeholder="gold * fx / 31.1035">
+          <small>Use the source names, numbers, + − × ÷, ( ), and min max avg sum round abs distance if format. Text in "quotes".</small></div>
         <div class="f full"><label for="e_name">Widget name</label><input id="e_name" required placeholder="Coffee machine status"></div>
         <div class="f"><label for="e_display">Display as</label>
           <select id="e_display">
             <option value="stat">Big number</option><option value="gauge">Gauge</option><option value="text">Text</option>
             <option value="list">List</option><option value="ticker">Ticker</option><option value="image">Image</option>
             <option value="beacon">Status light</option><option value="json">Raw JSON</option>
+            <option value="chart">Chart (list of points)</option><option value="history">History (this value over time)</option>
           </select></div>
         <div class="f"><label for="e_refresh">Refresh every (sec)</label><input id="e_refresh" type="number" min="10" value="300"></div>
         <div class="f full"><label for="e_pathSel">Value to show</label>
@@ -95,15 +102,21 @@
             <small>A template combines fields: {name} · {price|compact}. Filters: countdown, date, time, compact.</small></details></div>
         <div class="f full" data-for="list ticker"><label for="e_item">Each item shows</label><input id="e_item" class="mono" placeholder="{title} · {score}">
           <div class="chips fieldchips" id="e_itemFields"></div></div>
+        <div class="f" data-for="chart"><label for="e_chart">Chart type</label><select id="e_chart"><option value="line">Line</option><option value="area">Area</option><option value="bar">Bars</option></select></div>
+        <div class="f" data-for="chart"><label for="e_x">Along the bottom</label><select id="e_x"></select></div>
+        <div class="f" data-for="chart"><label for="e_y">Plot</label><select id="e_y"></select></div>
+        <div class="f" data-for="chart"><label for="e_y2">Second line (same unit)</label><select id="e_y2"></select></div>
         <div class="f" data-for="stat gauge"><label for="e_prefix">Prefix</label><input id="e_prefix" placeholder="$"></div>
-        <div class="f" data-for="stat gauge"><label for="e_unit">Unit</label><input id="e_unit" placeholder="km/h"></div>
+        <div class="f" data-for="stat gauge chart history"><label for="e_unit">Unit</label><input id="e_unit" placeholder="km/h"></div>
         <div class="f" data-for="gauge"><label for="e_min">Min</label><input id="e_min" type="number" step="any" value="0"></div>
         <div class="f" data-for="gauge"><label for="e_max">Max</label><input id="e_max" type="number" step="any" value="100"></div>
         <div class="f" data-for="stat gauge"><label for="e_decimals">Decimals</label><input id="e_decimals" type="number" min="0" max="8" placeholder="auto"></div>
         <div class="f" data-for="stat text"><label for="e_format">Format</label>
           <select id="e_format"><option value="">As is</option><option value="compact">Compact (1.2M)</option><option value="time">Time of day</option><option value="date">Date</option><option value="duration">Duration (seconds)</option><option value="wmo">Weather code</option><option value="countdown">Countdown</option></select></div>
-        <div class="f" data-for="beacon"><label for="e_ok">Green when value is</label><input id="e_ok" class="mono" placeholder="ok, true, 200"></div>
-        <div class="f" data-for="beacon"><label for="e_warn">Yellow when value is</label><input id="e_warn" class="mono" placeholder="degraded"></div>
+        <div class="f only-combine" data-for="beacon"><label for="e_okIf">Green when</label><input id="e_okIf" class="mono" placeholder="kp >= 4 and clouds < 40"></div>
+        <div class="f only-combine" data-for="beacon"><label for="e_warnIf">Yellow when</label><input id="e_warnIf" class="mono" placeholder="kp >= 3"></div>
+        <div class="f no-combine" data-for="beacon"><label for="e_ok">Green when value is</label><input id="e_ok" class="mono" placeholder="ok, true, 200"></div>
+        <div class="f no-combine" data-for="beacon"><label for="e_warn">Yellow when value is</label><input id="e_warn" class="mono" placeholder="degraded"></div>
         <div class="f full"><label for="e_headers">Request headers (optional)</label><textarea id="e_headers" placeholder="Authorization: Bearer sk-…&#10;Accept: application/json"></textarea><small>Stored only in this browser. Keys and auth headers are never included in share links.</small></div>
       </div>
       <div class="explorer">
@@ -195,18 +208,18 @@
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script src="vendor/gridstack-all.js?v=4"></script>
-<script src="blueprints.js?v=4"></script>
-<script src="js/engine.js?v=4"></script>
-<script src="js/displays.js?v=4"></script>
-<script src="js/lookups.js?v=4"></script>
-<script src="js/local.js?v=4"></script>
-<script src="js/app.js?v=4"></script>
-<script src="js/bank.js?v=4"></script>
-<script src="js/editor.js?v=4"></script>
-<script src="js/share.js?v=4"></script>
-<script src="js/boards.js?v=4"></script>
-<script src="js/welcome.js?v=4"></script>
-<script src="js/boot.js?v=4"></script>
+<script src="vendor/gridstack-all.js?v=5"></script>
+<script src="blueprints.js?v=5"></script>
+<script src="js/engine.js?v=5"></script>
+<script src="js/displays.js?v=5"></script>
+<script src="js/lookups.js?v=5"></script>
+<script src="js/local.js?v=5"></script>
+<script src="js/app.js?v=5"></script>
+<script src="js/bank.js?v=5"></script>
+<script src="js/editor.js?v=5"></script>
+<script src="js/share.js?v=5"></script>
+<script src="js/boards.js?v=5"></script>
+<script src="js/welcome.js?v=5"></script>
+<script src="js/boot.js?v=5"></script>
 </body>
 </html>

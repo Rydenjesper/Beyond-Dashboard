@@ -23,10 +23,10 @@ function recipes(home) {
   const se = inSweden(home);
   const B = (id, w, h) => ({ bp: id, w, h }), W = (mod, params, w, h) => ({ mod, params, w, h });
   return {
-    weather: [W("weather", { metric: "temperature_2m", place }, 2, 1), W("weather", { metric: "weather_code", place }, 2, 1), W("weather", { metric: "uv_index", place }, 2, 2), W("sun", { metric: "day_length", place }, 2, 1), W("air", { metric: "european_aqi", place }, 2, 2)],
-    sweden: [W("elpris", { zone: se ? elZone(home.lat) : "SE3", vat: "ex" }, 2, 2), W("polisen", { place: se ? home.name : "Stockholm" }, 2, 2), W("holidays", { country: "SE", show: "next" }, 2, 1), W("radio", { channel: { value: "132", label: "P1" } }, 2, 1)],
-    space: [B("bp_next_launch", 2, 1), B("bp_iss_velocity", 2, 1), B("bp_kp_index", 2, 2), B("bp_people_in_space", 2, 1), B("bp_space_news", 2, 2)],
-    money: [B("bp_btc", 2, 1), W("fx", se ? { from: "EUR", to: "SEK" } : { from: "EUR", to: "USD" }, 2, 1), B("bp_fear_greed", 2, 2), B("bp_trending_coins", 2, 2)],
+    weather: [W("weather", { metric: "temperature_2m", place }, 2, 1), W("weather", { metric: "weather_code", place }, 2, 1), W("weather", { metric: "uv_index", place }, 2, 2), W("sun", { metric: "day_length", place }, 2, 1), W("air", { metric: "european_aqi", place }, 2, 2), W("forecast", { place }, 4, 2)],
+    sweden: [W("elpris", { zone: se ? elZone(home.lat) : "SE3", vat: "ex" }, 2, 2), W("polisen", { place: se ? home.name : "Stockholm" }, 2, 2), W("holidays", { country: "SE", show: "next" }, 2, 1), W("radio", { channel: { value: "132", label: "P1" } }, 2, 1), W("el_cheap", { zone: se ? elZone(home.lat) : "SE3" }, 2, 1), W("smhi_warn", {}, 2, 1)],
+    space: [B("bp_next_launch", 2, 1), W("aurora", { place }, 2, 1), B("bp_iss_velocity", 2, 1), B("bp_kp_index", 2, 2), B("bp_people_in_space", 2, 1), B("bp_space_news", 2, 2)],
+    money: [B("bp_btc", 2, 1), W("metal", { cur: se ? "SEK" : "USD" }, 2, 1), W("fx", se ? { from: "EUR", to: "SEK" } : { from: "EUR", to: "USD" }, 2, 1), B("bp_fear_greed", 2, 2), B("bp_trending_coins", 2, 2)],
     dev: [B("bp_github_status", 2, 1), B("bp_claude_status", 2, 1), B("bp_hn_front", 2, 2), B("bp_gh_firehose", 6, 1)],
     sport: [B("bp_f1_drivers", 2, 2), B("bp_magnus_blitz", 2, 1), B("bp_bundesliga", 2, 2)],
     earth: [B("bp_quakes_big", 2, 2), B("bp_quakes_count", 2, 1), B("bp_volcanoes", 2, 2), B("bp_uk_carbon", 2, 2)],

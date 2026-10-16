@@ -60,18 +60,18 @@ Testad lista finns i Google Sheets: "API-lista: fungerar". Ta raderna markerade 
 - [ ] **Spaceflight News** finns redan. **Online Meme** (`https://meme-api.com/gimme` → `url`, `title`, `subreddit`) som bildwidget.
 
 ### 2c. Ekonomi
-- [ ] **Metaller live:** `https://api.gold-api.com/price/{XAU|XAG|XPT|XPD|HG}` → `price` (USD). Modul med metallval och valuta (räkna om via Frankfurter).
-- [ ] **ECB:s styrränta:** `https://data-api.ecb.europa.eu/service/data/FM/D.U2.EUR.4F.KR.MRR_FR.LEV?lastNObservations=1&format=jsondata` → `dataSets[0].series['0:0:0:0:0:0:0'].observations['0'][0]`.
-- [ ] **Eurostat** (modul): inflation (`prc_hicp_manr`), arbetslöshet (`une_rt_m`), per land. Format: JSON-stat, `value` + `dimension.time`. Bra för diagram (se 3).
-- [ ] **Coinpaprika och Blockchain.info** som extra kryptokällor.
-- [ ] **US Treasury** (amerikanska räntor), lågprio.
-- [ ] Alpha Vantage (olja, aktier, OMX) med egen nyckel via `secret`-param. Riksbankens API blockerar CORS och kräver proxy.
+- [x] **Metaller live:** `https://api.gold-api.com/price/{XAU|XAG|XPT|XPD|HG}` → `price` (USD). Modul med metallval och valuta (räkna om via Frankfurter). *(Modulen `metal`, kombinerad med open.er-api.com. Koppar (HG) är utelämnad, eftersom priset anges per pund.)*
+- [x] **ECB:s styrränta:** `https://data-api.ecb.europa.eu/service/data/FM/D.U2.EUR.4F.KR.MRR_FR.LEV?lastNObservations=1&format=jsondata` → `dataSets[0].series['0:0:0:0:0:0:0'].observations['0'][0]`.
+- [x] **Eurostat** (modul): inflation (`prc_hicp_manr`), arbetslöshet (`une_rt_m`), per land. Format: JSON-stat, `value` + `dimension.time`. Bra för diagram (se 3).
+- [x] **Coinpaprika och Blockchain.info** som extra kryptokällor.
+- [x] **US Treasury** (amerikanska räntor), lågprio. *(Två färdiga widgets: nu och 2 år som diagram.)*
+- [x] Alpha Vantage (olja, aktier, OMX) med egen nyckel via `secret`-param. Riksbankens API blockerar CORS och kräver proxy. *(Klart: modulen `stocks`, aktie eller olja, med secret-nyckel. Kvartspriset är verifierat med demo-nyckeln. Dagliga oljepriser kräver en riktig nyckel, och felmeddelandet från Alpha Vantage visas i widgeten.)*
 
 ### 2d. Sverige, energi och väder
-- [ ] **Svenska kraftnät:** `https://www.svk.se/services/controlroom/v2/situation?date={YYYY}-{MM}-{DD}&biddingArea=SE` → produktion och förbrukning per timme. Bra som diagram bredvid elpriset.
-- [ ] **SMHI-varningar:** `https://opendata-download-warnings.smhi.se/ibww/api/version/1/warning.json`. Lista eller beacon (grönt om inga varningar för vald region).
-- [ ] **SMHI-prognos** som alternativ källa i väder-modulen: `https://opendata-download-metfcst.smhi.se/api/category/snow1g/version/1/geotype/point/lon/{lon}/lat/{lat}/data.json`.
-- [ ] **wttr.in** som extra väderkälla: `https://wttr.in/{stad}?format=j1`.
+- [x] **Svenska kraftnät:** `https://www.svk.se/services/controlroom/v2/situation?date={YYYY}-{MM}-{DD}&biddingArea=SE` → produktion och förbrukning per timme. Bra som diagram bredvid elpriset. *(Endpointen ger bara förbrukning, prognos mot utfall. Hittade ingen produktions-endpoint (`/production` svarar 500). Modulen `svk` ritar det som finns.)*
+- [x] **SMHI-varningar:** `https://opendata-download-warnings.smhi.se/ibww/api/version/1/warning.json`. Lista eller beacon (grönt om inga varningar för vald region).
+- [x] **SMHI-prognos** som alternativ källa i väder-modulen: `https://opendata-download-metfcst.smhi.se/api/category/snow1g/version/1/geotype/point/lon/{lon}/lat/{lat}/data.json`.
+- [x] **wttr.in** som extra väderkälla: `https://wttr.in/{stad}?format=j1`.
 
 ### 2e. Sport och spel
 - [ ] **ESPN live-resultat** (modul, inofficiellt API): `https://site.api.espn.com/apis/site/v2/sports/{sport}/{liga}/scoreboard`. Ligor: `soccer/swe.1` (Allsvenskan), `soccer/eng.1`, `hockey/nhl`, `basketball/nba` m.fl. Visa "{hemmalag} {mål}–{mål} {bortalag} · {status}".
@@ -93,9 +93,9 @@ Testad lista finns i Google Sheets: "API-lista: fungerar". Ta raderna markerade 
 
 Målet: data som är en tidsserie ska kunna visas som diagram, inte bara som ett tal.
 
-- [ ] **Motor:** ny displaytyp `chart` med undertyperna `line`, `area`, `bar`. Konfig: `series` (sökväg till array), `x` (fält eller index), `y` (fält, flera tillåtna), `xFormat` (`time|date|hour`). Rita med inline SVG (som gauge och sparkline gör i dag) för att slippa beroenden. Om det blir för komplext: vendora uPlot (MIT, ~50 KB) i `vendor/`.
-- [ ] Axlar med enheter, max 5 etiketter per axel, markör för "nu" på tidsserier, tooltip på hover/touch, följer temat.
-- [ ] **Diagram som ska finnas från start:**
+- [x] **Motor:** ny displaytyp `chart` *(Klart. Fälten heter `xField`/`yFields`, inte `x`/`y`, eftersom custom-widgets lagrar inställningarna bredvid sin gridposition. Olika enheter ritas som paneler över en gemensam x-axel, aldrig två y-skalor i samma panel.)* med undertyperna `line`, `area`, `bar`. Konfig: `series` (sökväg till array), `x` (fält eller index), `y` (fält, flera tillåtna), `xFormat` (`time|date|hour`). Rita med inline SVG (som gauge och sparkline gör i dag) för att slippa beroenden. Om det blir för komplext: vendora uPlot (MIT, ~50 KB) i `vendor/`.
+- [x] Axlar med enheter, max 5 etiketter per axel, markör för "nu" på tidsserier, tooltip på hover/touch, följer temat.
+- [x] **Diagram som ska finnas från start:** *(Alla 7: Kraftnät (förbrukning) och Eurostat tillkom i 2c/2d. Tidigare 5 av 7: elpris ("Show: Whole day"), `forecast`, `coin_chart`, `quakes` som chart och `wiki_views`. Kraftnät och Eurostat görs med 2c/2d.)*
   - Elpris idag, 96 kvartar som staplar med markör på nu, billigaste timmen markerad. (Elpris-modulen: lägg till "Visa: Nu / Hela dagen".)
   - Väderprognos 48 h från Open-Meteo `hourly=temperature_2m,precipitation` (linje + staplar).
   - Kryptopris senaste 7/30 dagarna: `https://api.coingecko.com/api/v3/coins/{id}/market_chart?vs_currency=usd&days=7`.
@@ -103,8 +103,8 @@ Målet: data som är en tidsserie ska kunna visas som diagram, inte bara som ett
   - Jordbävningar per timme senaste dygnet (räkna från USGS-flödet).
   - Eurostat inflation per månad för valt land.
   - Wikipedia-sidvisningar för en artikel, 30 dagar.
-- [ ] **Historik för alla `stat`-widgets:** spara sparkline-historiken i `localStorage` (max 200 punkter per widget) så att den överlever omladdning, och låt användaren växla en stat-widget till linjediagram.
-- [ ] Custom API-editorn ska kunna välja `chart` när den valda sökvägen är en array av objekt med tal.
+- [x] **Historik för alla `stat`-widgets:** *(`beyond.history.v1`, visningsläget "History" erbjuds för alla stat-widgets.)* spara sparkline-historiken i `localStorage` (max 200 punkter per widget) så att den överlever omladdning, och låt användaren växla en stat-widget till linjediagram.
+- [x] Custom API-editorn ska kunna välja `chart` när den valda sökvägen är en array av objekt med tal.
 
 ---
 
@@ -113,23 +113,23 @@ Målet: data som är en tidsserie ska kunna visas som diagram, inte bara som ett
 Målet: en widget kan hämta från flera källor och räkna fram eller kombinera ett värde. Exempel: "Guld i kr/gram" = guldpris (USD/oz) × USD→SEK ÷ 31,1035.
 
 **Motor:**
-- [ ] Ny widgetform med `sources`: `{ sources: { gold: {url, path}, fx: {url, path} }, value: "gold * fx / 31.1035", display, unit, ... }`. Varje källa hämtas via den delade cachen (punkt 1), parallellt.
-- [ ] `value` är ett **säkert uttryck, inte `eval`**. Skriv en liten parser (tal, källnamn, `+ - * / ( )`, jämförelser `< > <= >= == !=`, `and/or/not`, och en vitlista med funktioner: `min max abs round avg sum distance(lat1, lon1, lat2, lon2) if(villkor, a, b)`). Okända namn ger ett tydligt fel i widgeten.
-- [ ] Mallar ska kunna referera alla källor: `{gold} · {fx|round}`, och fält inom en källa: `{iss.latitude}`.
-- [ ] Om en källa failar: visa vilken källa det gäller ("ISS-källan svarar inte") i stället för ett generellt fel.
-- [ ] Beacon-läget ska kunna använda ett villkorsuttryck: `ok: "kp >= 4 and clouds < 40 and night"`.
-- [ ] Custom API-editorn får ett läge "Kombinera källor": lägg till källa (URL + fältväljaren som redan finns), ge den ett kort namn, skriv uttrycket, se förhandsvisning live.
-- [ ] Delningslänkar fungerar som vanligt. Nycklar i någon källa rensas på samma sätt som i dag.
+- [x] Ny widgetform med `sources`: `{ sources: { gold: {url, path}, fx: {url, path} }, value: "gold * fx / 31.1035", display, unit, ... }`. Varje källa hämtas via den delade cachen (punkt 1), parallellt.
+- [x] `value` är ett **säkert uttryck, inte `eval`**. Skriv en liten parser (tal, källnamn, `+ - * / ( )`, jämförelser `< > <= >= == !=`, `and/or/not`, och en vitlista med funktioner: `min max abs round avg sum distance(lat1, lon1, lat2, lon2) if(villkor, a, b)`). Okända namn ger ett tydligt fel i widgeten.
+- [x] Mallar ska kunna referera alla källor: `{gold} · {fx|round}`, och fält inom en källa: `{iss.latitude}`.
+- [x] Om en källa failar: visa vilken källa det gäller ("ISS-källan svarar inte") i stället för ett generellt fel.
+- [x] Beacon-läget ska kunna använda ett villkorsuttryck: `ok: "kp >= 4 and clouds < 40 and night"`. *(Fälten heter `okIf`/`warnIf`, plus `calc` för namngivna mellansteg och `words` för beacon-texterna.)*
+- [x] Custom API-editorn får ett läge "Kombinera källor": lägg till källa (URL + fältväljaren som redan finns), ge den ett kort namn, skriv uttrycket, se förhandsvisning live.
+- [x] Delningslänkar fungerar som vanligt. Nycklar i någon källa rensas på samma sätt som i dag.
 
-**Färdiga exempel att lägga i banken.** Alla källor är testade och fungerar från webbläsaren:
-- [ ] **Guld i kr/gram:** `api.gold-api.com/price/XAU` (`price`) × Frankfurter USD→SEK ÷ 31,1035. Samma för silver (`XAG`).
-- [ ] **Kan jag se norrsken ikväll?** NOAA Kp-index (`services.swpc.noaa.gov/json/planetary_k_index_1m.json`, `[-1].estimated_kp`) + Open-Meteo molnighet och `is_day` för hemorten. Beacon: grönt om Kp ≥ 4, moln < 40 % och mörkt; gult om två av tre stämmer; annars rött. Texten förklarar varför ("Kp 2, för lågt").
-- [ ] **Hur långt bort är ISS från dig?** `api.wheretheiss.at/v1/satellites/25544` + hemortens koordinater → `distance()` i km. Stat med sparkline.
-- [ ] **Hemma jämfört med Sydpolen:** Open-Meteo-temperatur för hemorten och för Sydpolen → "Det är 58 °C varmare i Göteborg än på Sydpolen."
-- [ ] **Är elen billig just nu?** Elpris för nuvarande kvart jämfört med dagens snitt för samma elområde (en källa, men räknad): "18 % billigare än snittet idag", med grön/gul/röd färg.
-- [ ] **Bitcoin i kronor med marknadshumör:** Coinbase BTC-USD × USD→SEK + Fear & Greed (`api.alternative.me/fng/`) → "742 000 kr · Greed (63)".
-- [ ] **Paraply till bussen?** SL-avgångar för vald hållplats + Open-Meteo nederbörd nästa timme → "Buss 4 om 6 min · ta paraply". Kräver SL-modulen från 2a.
-- [ ] **Morgonbrief (textkort):** väder hemma + nästa röda dag + nästa raketuppskjutning + elpris nu i en och samma widget.
+**Färdiga exempel att lägga i banken.** Alla källor är testade och fungerar från webbläsaren: *(Alla åtta finns som moduler med plats-param, så de utgår från hemorten. Valutakurs: open.er-api.com, eftersom frankfurter.app svarar 301 utan CORS.)*
+- [x] **Guld i kr/gram:** `api.gold-api.com/price/XAU` (`price`) × Frankfurter USD→SEK ÷ 31,1035. Samma för silver (`XAG`).
+- [x] **Kan jag se norrsken ikväll?** NOAA Kp-index (`services.swpc.noaa.gov/json/planetary_k_index_1m.json`, `[-1].estimated_kp`) + Open-Meteo molnighet och `is_day` för hemorten. Beacon: grönt om Kp ≥ 4, moln < 40 % och mörkt; gult om två av tre stämmer; annars rött. Texten förklarar varför ("Kp 2, för lågt").
+- [x] **Hur långt bort är ISS från dig?** `api.wheretheiss.at/v1/satellites/25544` + hemortens koordinater → `distance()` i km. Stat med sparkline.
+- [x] **Hemma jämfört med Sydpolen:** Open-Meteo-temperatur för hemorten och för Sydpolen → "Det är 58 °C varmare i Göteborg än på Sydpolen."
+- [x] **Är elen billig just nu?** Elpris för nuvarande kvart jämfört med dagens snitt för samma elområde (en källa, men räknad): "18 % billigare än snittet idag", med grön/gul/röd färg.
+- [x] **Bitcoin i kronor med marknadshumör:** Coinbase BTC-USD × USD→SEK + Fear & Greed (`api.alternative.me/fng/`) → "742 000 kr · Greed (63)".
+- [x] **Paraply till bussen?** SL-avgångar för vald hållplats + Open-Meteo nederbörd nästa timme → "Buss 4 om 6 min · ta paraply". Kräver SL-modulen från 2a.
+- [x] **Morgonbrief (textkort):** väder hemma + nästa röda dag + nästa raketuppskjutning + elpris nu i en och samma widget.
 
 ---
 
@@ -189,7 +189,7 @@ Inget byggsteg, inga testramverk som kräver kompilering. Kör med Node 20+ (`no
 - [x] Flytta de rena funktionerna (`pick`, `pickNow`, `tmpl`, `resolve`, `fmt`, `countdown`, `fillPlaceholders`, `buildCfg`, `encode`/`decode` för delningslänkar och uttrycksparsern från 3b) till `js/engine.js` *(klart utom uttrycksparsern, som inte finns än. Även `hydrate`, `shareable`, `catalogHosts` ligger där. Visningstyperna ligger i `js/displays.js`, också utan DOM vid laddning. `tests/load.js` laddar scripten i Node i samma ordning som webbläsaren.)* så att de kan laddas både i webbläsaren och i Node. Exportera via `if (typeof module !== "undefined") module.exports = {...}`.
 - [x] `tests/engine.test.js`: sökvägar (inklusive `[-1]` och `[now]`), mallar med filter, formatering, platshållare, `scale`.
 - [x] `tests/share.test.js`: kodning och avkodning tur och retur, att nycklar och secret-headers rensas, att todo-innehåll aldrig följer med, att trasiga länkar avvisas.
-- [ ] `tests/expr.test.js`: uttrycksparsern. Giltiga uttryck, operatorprioritet, okända namn ger fel, och att försök som `constructor`, `__proto__` och `this` inte går att köra.
+- [x] `tests/expr.test.js`: uttrycksparsern. Giltiga uttryck, operatorprioritet, okända namn ger fel, och att försök som `constructor`, `__proto__` och `this` inte går att köra.
 - [x] `tests/catalog.test.js`: varje modul i `blueprints.js` bygger en giltig konfig för sina standardparametrar och för varje val i varje `choice`-param. Varje blueprint har `id`, `name`, `desc`, `category` och antingen `mod` eller `url`.
 - [x] `tests/migration.test.js`: `beyond.dashboard.v2` migreras korrekt till flera dashboards utan dataförlust.
 - [x] GitHub Action som kör `node --test` på varje push och pull request, i samma workflow som hälsokollen i punkt 1. *(`.github/workflows/ci.yml`. Hälsokollen läggs till där i v1.3.)*

@@ -25,6 +25,7 @@ function fillPlaceholders(s) {
   return String(s)
     .replace(/\{YYYY\}/g, d.getFullYear()).replace(/\{MM\}/g, pad(d.getMonth() + 1)).replace(/\{DD\}/g, pad(d.getDate()))
     .replace(/\{SEASON\}/g, d.getMonth() >= 6 ? d.getFullYear() : d.getFullYear() - 1)
+    .replace(/\{(date|ymd):([+-]\d+)\}/g, (_, f, n) => { const x = new Date(d); x.setDate(x.getDate() + +n); const s = `${x.getFullYear()}-${pad(x.getMonth() + 1)}-${pad(x.getDate())}`; return f === "ymd" ? s.replace(/-/g, "") : s; })
     .replace(/\{rand:(\d+)-(\d+)\}/g, (_, a, b) => +a + Math.floor(Math.random() * (+b - +a + 1)));
 }
 /* [now] picks the entry of a time-sliced array that covers the current moment (electricity prices, schedules). */
@@ -42,10 +43,12 @@ function pickNow(arr) {
 }
 function pick(obj, path) {
   if (path == null || path === "") return obj;
-  const parts = String(path).replace(/\[(-?\d+|now)\]/g, ".$1").split(".").filter(Boolean);
+  const parts = String(path).replace(/\[(-?\d+|now|\*)\]/g, ".$1").split(".").filter(Boolean);
   let cur = obj;
-  for (const p of parts) {
+  for (let k = 0; k < parts.length; k++) {
+    const p = parts[k];
     if (cur == null) return undefined;
+    if (p === "*") return Array.isArray(cur) ? cur.map(x => pick(x, parts.slice(k + 1).join("."))) : undefined;   // every item
     if (Array.isArray(cur) && /^-?\d+$/.test(p)) { const i = +p; cur = cur[i < 0 ? cur.length + i : i]; }
     else if (Array.isArray(cur) && p === "now") cur = pickNow(cur);
     else cur = cur[p];
@@ -107,7 +110,11 @@ const timeAgo = t => { if (!t) return "waiting"; const s = Math.round((Date.now(
 /* ═══ Modules: params → widget config ═════════════════════ */
 function modDefaults(m) { const p = {}; m.params.forEach(x => { if (x.type !== "secret") p[x.key] = clone(x.default); }); return p; }
 function modSelected(m, p) { const s = {}; m.params.forEach(x => { if (x.type === "choice") s[x.key] = x.options.find(o => o.value === p[x.key]) || x.options[0]; }); return s; }
-function modDisplays(m, s) { let d = m.displays; m.params.forEach(x => { if (x.type === "choice" && s[x.key]?.displays) d = s[x.key].displays; }); return d || ["stat"]; }
+function modDisplays(m, s) {
+  let d = m.displays; m.params.forEach(x => { if (x.type === "choice" && s[x.key]?.displays) d = s[x.key].displays; });
+  d = d || ["stat"];
+  return d.includes("stat") && !d.includes("history") ? [...d, "history"] : d;   // any number can also be drawn over time
+}
 /* Secret params (API keys) live in beyond.keys, never in the board or in share links.
    One value per module + param (or per x.store), shared by every widget of that module. */
 const KEYS = "beyond.keys";
@@ -134,9 +141,118 @@ function buildCfg(m, params, secrets) {
   return c;
 }
 
+/* ═══ Expressions: a small, safe calculator for combined widgets ═══
+   Numbers, "strings", source names with paths (gold, iss.latitude, p[now].SEK_per_kWh, p[*].SEK_per_kWh),
+   + - * / % ( ), comparisons < > <= >= == !=, and/or/not, true/false and a short list of functions.
+   No eval, no property access outside pick(), unknown names are errors. */
+const EXPR_FUNCS = {
+  min: (...a) => Math.min(...a.flat()), max: (...a) => Math.max(...a.flat()), abs: Math.abs, floor: Math.floor, ceil: Math.ceil,
+  round: (x, d = 0) => { const f = 10 ** d; return Math.round(x * f) / f; },
+  sum: (...a) => a.flat().reduce((s, x) => s + Number(x || 0), 0),
+  avg: (...a) => { const v = a.flat().filter(x => x != null && !isNaN(x)); return v.length ? v.reduce((s, x) => s + Number(x), 0) / v.length : NaN; },
+  count: (...a) => a.flat().filter(x => x != null).length,
+  distance: (la1, lo1, la2, lo2) => { const r = Math.PI / 180, a = Math.sin((la2 - la1) * r / 2) ** 2 + Math.cos(la1 * r) * Math.cos(la2 * r) * Math.sin((lo2 - lo1) * r / 2) ** 2; return 12742 * Math.asin(Math.sqrt(a)); },
+  if: (c, a, b) => c ? a : b,
+  text: (x, d) => typeof x === "number" && d != null ? x.toFixed(d) : String(x ?? ""),
+  format: (x, d) => fmt(x, { decimals: d }), compact: x => fmt(x, { format: "compact" }),
+  weather: code => WMO[code] || "", countdown: t => countdown(t), date: t => fmt(t, { format: "date" }), time: t => fmt(t, { format: "time" }),
+};
+const BANNED = /(^|[.[\]])(__proto__|prototype|constructor)($|[.[\]])/;
+function tokenize(src) {
+  const re = /\s*(?:(\d+(?:\.\d+)?(?:e[+-]?\d+)?)|("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')|([A-Za-z_]\w*(?:\.[A-Za-z_]\w*|\[(?:-?\d+|now|\*)\])*)|(<=|>=|==|!=|[-+*\/%(),<>]))/y;
+  const out = []; let m; re.lastIndex = 0;
+  src = String(src);
+  if (src.length > 500) throw new Error("That calculation is too long.");
+  while (re.lastIndex < src.length) {
+    const at = re.lastIndex;
+    if (!(m = re.exec(src))) { if (/^\s*$/.test(src.slice(at))) break; throw new Error(`Can't read “${src.slice(at).trim().slice(0, 12)}”.`); }
+    if (m[1]) out.push({ t: "num", v: +m[1] });
+    else if (m[2]) out.push({ t: "str", v: m[2].slice(1, -1).replace(/\\(.)/g, "$1") });
+    else if (m[3]) out.push(["and", "or", "not", "true", "false"].includes(m[3]) ? { t: "op", v: m[3] } : { t: "name", v: m[3] });
+    else out.push({ t: "op", v: m[4] });
+  }
+  return out;
+}
+const exprCache = new Map();
+function compileExpr(src) {
+  if (exprCache.has(src)) return exprCache.get(src);
+  const tk = tokenize(src); let i = 0;
+  const peek = v => tk[i] && tk[i].t === "op" && tk[i].v === v, eat = v => { if (!peek(v)) throw new Error(`Expected “${v}”.`); i++; };
+  const bin = (next, ops) => () => { let l = next(); while (tk[i]?.t === "op" && ops.includes(tk[i].v)) { const op = tk[i++].v; l = { op, l, r: next() }; } return l; };
+  const primary = () => {
+    const t = tk[i++]; if (!t) throw new Error("The calculation ends too early.");
+    if (t.t === "num" || t.t === "str") return { lit: t.v };
+    if (t.t === "op" && (t.v === "true" || t.v === "false")) return { lit: t.v === "true" };
+    if (t.t === "op" && t.v === "(") { const e = or(); eat(")"); return e; }
+    if (t.t === "op" && t.v === "-") return { op: "neg", r: primary() };
+    if (t.t === "op" && t.v === "not") return { op: "not", r: cmp() };
+    if (t.t === "name") {
+      if (BANNED.test(t.v)) throw new Error(`“${t.v}” isn't allowed.`);
+      if (peek("(")) {
+        if (!Object.prototype.hasOwnProperty.call(EXPR_FUNCS, t.v)) throw new Error(`Unknown function “${t.v}”.`);
+        i++; const args = []; if (!peek(")")) { do args.push(or()); while (peek(",") && ++i); } eat(")");
+        return { fn: t.v, args };
+      }
+      return { name: t.v };
+    }
+    throw new Error(`Unexpected “${t.v}”.`);
+  };
+  const mul = bin(primary, ["*", "/", "%"]), add = bin(mul, ["+", "-"]), cmp = bin(add, ["<", ">", "<=", ">=", "==", "!="]);
+  const and = bin(() => peek("not") ? (i++, { op: "not", r: cmp() }) : cmp(), ["and"]), or = bin(and, ["or"]);
+  const ast = or();
+  if (i < tk.length) throw new Error(`Unexpected “${tk[i].v}”.`);
+  if (exprCache.size > 500) exprCache.clear();
+  exprCache.set(src, ast);
+  return ast;
+}
+function evalExpr(src, env) {
+  const own = (o, k) => o != null && Object.prototype.hasOwnProperty.call(o, k);
+  const ev = n => {
+    if ("lit" in n) return n.lit;
+    if (n.name) {
+      const root = n.name.match(/^[A-Za-z_]\w*/)[0];
+      if (!own(env, root)) throw new Error(`Unknown name “${root}”.`);
+      const v = pick(env[root], n.name.slice(root.length).replace(/^\./, ""));
+      return typeof v === "function" ? undefined : v;
+    }
+    if (n.fn) return EXPR_FUNCS[n.fn](...n.args.map(ev));
+    const num = x => typeof x === "string" && x.trim() !== "" && !isNaN(x) ? Number(x) : x;
+    if (n.op === "neg") return -num(ev(n.r));
+    if (n.op === "not") return !ev(n.r);
+    if (n.op === "and") return ev(n.l) && ev(n.r);
+    if (n.op === "or") return ev(n.l) || ev(n.r);
+    const rl = ev(n.l), rr = ev(n.r), l = num(rl), r = num(rr);
+    switch (n.op) {
+      case "+":   // two strings join ("409" + " " stays text); a numeric string next to a number adds
+        if (typeof rl === "string" && typeof rr === "string") return rl + rr;
+        return typeof l === "string" || typeof r === "string" ? `${rl ?? ""}${rr ?? ""}` : l + r;
+      case "-": return l - r; case "*": return l * r; case "/": return l / r; case "%": return l % r;
+      case "<": return l < r; case ">": return l > r; case "<=": return l <= r; case ">=": return l >= r;
+      case "==": return l == r; case "!=": return l != r;   // loose on purpose: "200" == 200
+    }
+  };
+  return ev(compileExpr(src));
+}
+
+/* Every URL a widget calls: one, or one per source in a combined widget. */
+const SOURCE_NAME = /^[A-Za-z_]\w{0,19}$/;
+const cfgUrls = c => c.sources && typeof c.sources === "object" ? Object.values(c.sources).map(s => s && s.url).filter(Boolean) : c.url ? [c.url] : [];
+
+/* ═══ Combined widgets: several sources, one calculated value ═══
+   { sources: { gold: { url, path }, fx: { url, path } }, calc: { kg: "gold * 32.15" }, value: "kg * fx",
+     okIf: "...", warnIf: "...", words: { ok, warn, bad } }. Sources come in as named values, calc adds named
+   steps in order, value is what the widget shows. okIf/warnIf pick the beacon's color. */
+function combine(c, values) {
+  const env = { ...values };
+  Object.entries(c.calc || {}).forEach(([k, ex]) => { if (SOURCE_NAME.test(k)) env[k] = evalExpr(ex, env); });
+  const value = c.value ? evalExpr(c.value, env) : c.template ? tmpl(c.template, env) : env;
+  const level = c.okIf ? (evalExpr(c.okIf, env) ? "ok" : c.warnIf && evalExpr(c.warnIf, env) ? "warn" : "bad") : undefined;
+  return { env, value: c.value && c.template ? tmpl(c.template, { ...env, value }) : value, level };
+}
+
 /* ═══ Catalog hosts: every domain the built-in catalog can call ═══ */
 function catalogHosts(modules, bank) {
-  const hs = new Set(), add = c => { const h = host(c.url); if (h) hs.add(h); };
+  const hs = new Set(), add = c => cfgUrls(c).forEach(u => { const h = host(u); if (h) hs.add(h); });
   bank.forEach(b => { if (b.url) add(b); });
   modules.forEach(m => {
     let combos = [{}];   // every combination of choice values (small: a few options per param)
@@ -148,7 +264,7 @@ function catalogHosts(modules, bank) {
 
 /* ═══ Share links: encode, decode, validate ═══════════════ */
 const SHARE_MAX = 16384, SHARE_MAX_WIDGETS = 100;
-const DISPLAY_TYPES = ["stat", "gauge", "text", "list", "ticker", "image", "beacon", "json"];
+const DISPLAY_TYPES = ["stat", "gauge", "text", "list", "ticker", "image", "beacon", "json", "chart", "history"];
 const FORMATS = ["time", "date", "duration", "compact", "wmo", "countdown"];
 const b64url = bytes => { let s = ""; bytes.forEach(b => s += String.fromCharCode(b)); return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""); };
 const unb64url = s => Uint8Array.from(atob(s.replace(/-/g, "+").replace(/_/g, "/")), c => c.charCodeAt(0));
@@ -188,6 +304,9 @@ const CUSTOM_FIELDS = {
   min: v => num(v, -1e15, 1e15), max: v => num(v, -1e15, 1e15), scale: v => num(v, -1e15, 1e15),
   decimals: v => num(v, 0, 10) === undefined ? undefined : Math.round(num(v, 0, 10)), refresh: v => num(v, 10, 86400),
   ok: vals, warn: vals,
+  chart: v => ["line", "area", "bar"].includes(v) ? v : undefined, xFormat: v => ["hour", "time", "date", "day", "month"].includes(v) ? v : undefined,
+  mark: v => ["min", "max"].includes(v) ? v : undefined, xField: v => str(v, 200),
+  yFields: v => typeof v === "string" ? v.slice(0, 200) : Array.isArray(v) ? (v.filter(x => typeof x === "string").slice(0, 4).map(x => x.slice(0, 200)) || undefined) : undefined,
   headers: v => {
     if (!v || typeof v !== "object" || Array.isArray(v)) return undefined;
     const h = Object.entries(v).filter(([k, x]) => typeof x === "string" && /^[\w-]{1,64}$/.test(k)).slice(0, 20).map(([k, x]) => [k, x.slice(0, 500)]);
@@ -198,7 +317,18 @@ function sanitizeCustom(c) {
   if (!c || typeof c !== "object") return null;
   const out = {};
   Object.entries(CUSTOM_FIELDS).forEach(([k, f]) => { const v = f(c[k]); if (v !== undefined) out[k] = v; });
-  return out.url ? { ...out, display: out.display || "text", name: out.name || host(out.url) || "Custom widget", category: out.category || "custom" } : null;
+  if (c.sources && typeof c.sources === "object" && !Array.isArray(c.sources)) {
+    const src = Object.entries(c.sources).filter(([k]) => SOURCE_NAME.test(k)).slice(0, 6)
+      .map(([k, s]) => [k, s && { url: CUSTOM_FIELDS.url(s.url), path: str(s.path, 500) || "", ...(CUSTOM_FIELDS.headers(s.headers) ? { headers: CUSTOM_FIELDS.headers(s.headers) } : {}) }])
+      .filter(([, s]) => s && s.url);
+    if (src.length) {
+      out.sources = Object.fromEntries(src); delete out.url;
+      ["value", "okIf", "warnIf"].forEach(k => { if (typeof c[k] === "string") out[k] = c[k].slice(0, 500); });
+      if (c.calc && typeof c.calc === "object") out.calc = Object.fromEntries(Object.entries(c.calc).filter(([k, v]) => SOURCE_NAME.test(k) && typeof v === "string").slice(0, 8).map(([k, v]) => [k, v.slice(0, 500)]));
+    }
+  }
+  const first = cfgUrls(out)[0];
+  return first ? { ...out, display: out.display || "text", name: out.name || host(first) || "Custom widget", category: out.category || "custom" } : null;
 }
 function sanitizeParams(m, p) {
   const out = {}; if (!p || typeof p !== "object") return out;
@@ -223,9 +353,12 @@ function shareable(board, mods) {
       return { m: w.mod, p, ...(w.title ? { t: w.title } : {}), ...pos };
     }
     if (w.bp) return { b: w.bp, ...pos };
-    const { id, x, y, w: _w, h, ...c } = w;
-    if (c.headers) { c.headers = Object.fromEntries(Object.entries(c.headers).filter(([k]) => !(SECRET.test(k) && ++stripped))); if (!Object.keys(c.headers).length) delete c.headers; }
-    if (/[?&](api_?key|key|token|access_token|apikey)=(?!DEMO_KEY)/i.test(c.url || "")) { c.url = c.url.replace(/([?&](?:api_?key|key|token|access_token|apikey)=)[^&]*/gi, "$1YOUR_KEY"); stripped++; }
+    const { id, x, y, w: _w, h, ...c } = clone(w);
+    const clean = o => {
+      if (o.headers) { o.headers = Object.fromEntries(Object.entries(o.headers).filter(([k]) => !(SECRET.test(k) && ++stripped))); if (!Object.keys(o.headers).length) delete o.headers; }
+      if (/[?&](api_?key|key|token|access_token|apikey)=(?!DEMO_KEY)/i.test(o.url || "")) { o.url = o.url.replace(/([?&](?:api_?key|key|token|access_token|apikey)=)[^&]*/gi, "$1YOUR_KEY"); stripped++; }
+    };
+    clean(c); Object.values(c.sources || {}).forEach(s => s && clean(s));
     return { c, ...pos };
   });
   return { payload: { v: 2, t: board.title, ws }, stripped };
@@ -260,4 +393,4 @@ function migrateBoards(saved, old) {
   return b ? { active: b.id, boards: [b] } : null;
 }
 
-if (typeof module !== "undefined") module.exports = { esc, maskSecrets, uid, pad, clamp, clone, store, host, debounce, WMO, fillPlaceholders, pickNow, pick, unescapeHTML, isTemplate, tmpl, resolve, countdown, fmtDuration, fmt, timeAgo, modDefaults, modSelected, modDisplays, buildCfg, getSecret, setSecret, secretParams, catalogHosts, encode, decode, hydrate, shareable, migrateBoards, sanitizeCustom, sanitizeParams, SHARE_MAX };
+if (typeof module !== "undefined") module.exports = { esc, maskSecrets, uid, pad, clamp, clone, store, host, debounce, WMO, fillPlaceholders, pickNow, pick, unescapeHTML, isTemplate, tmpl, resolve, countdown, fmtDuration, fmt, timeAgo, modDefaults, modSelected, modDisplays, buildCfg, getSecret, setSecret, secretParams, catalogHosts, encode, decode, hydrate, shareable, migrateBoards, compileExpr, evalExpr, combine, cfgUrls, sanitizeCustom, sanitizeParams, SHARE_MAX };
