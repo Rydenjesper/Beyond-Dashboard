@@ -14,18 +14,22 @@ To host it: push the folder to GitHub and turn on GitHub Pages.
 
 - **Two-step setup**: first visit asks where home is and what you're into, then builds a personal board (your city's weather, your Swedish electricity zone, launches if you like space) and runs a five-tip tour. Rebuild any time from the widget bank; replay the tour with the ? button.
 
-- **Modules**: 19 configurable widget types. Weather, air quality, ocean and sun work for any place on Earth (search or pick an absurd preset). Swedish electricity spot prices per zone, Swedish police events per county, rocket launch countdowns, chess ratings, F1 standings, public holidays, crypto, exchange rates, GitHub repos, npm packages, 14 status pages, earthquakes, Wikipedia and Hacker News each have their own options.
+- **Modules**: 26 configurable widget types. Weather, air quality, ocean and sun work for any place on Earth (search or pick an absurd preset). Swedish electricity spot prices per zone, Swedish police events per county, SL departures from any Stockholm stop, Sveriges Radio live, rocket launch countdowns, NASA asteroids, chess ratings, F1 standings, public holidays, crypto, exchange rates, GitHub repos, npm packages, 14 status pages, earthquakes, Wikipedia and Hacker News each have their own options.
+- **Personal widgets**: to-do lists, notes with simple formatting, a pomodoro timer and world clocks. No API; what you write stays on your device and is never part of a share link.
+- **Several boards**: tabs on desktop, a list on mobile, keys 1–9 to switch. Each board can have its own home city for new widgets.
 - **Ready-made widgets**: 80 one-click widgets, from South Pole temperature to Critical Cat Facts. All key-less and tested to work from a browser (CORS).
 - **Free-form board**: drag a widget by its header and the others move out of the way. Drag the corner to resize (1–6 columns, 1–4 rows). Layout adapts to 4 and 2 columns on smaller screens.
 - **8 display modes**: big number with sparkline, gauge, text, list, ticker, image, status light, raw JSON.
 - **Connect your own API**: paste an endpoint, press Fetch, click the value you want in the response. Supports custom headers, `{templates}` that combine fields, and URL placeholders like `{YYYY}-{MM}-{DD}` and `{rand:1-100}`.
-- **Share links**: the full layout is compressed into the URL. No server stores anything. API keys and auth headers are stripped before sharing.
+- **Share links**: the active board is compressed into the URL. No server stores anything. API keys and auth headers are stripped before sharing, and personal widgets travel empty. Opening a link adds it as a new board instead of replacing yours.
+- **Safe to open**: a shared board that calls sites outside the catalog asks before loading them, so the sender can't see your IP address. Links are size-capped and validated.
+- **Backup**: download everything as one JSON file (API keys optional) and restore it on any device.
 
-Your layout is saved in your browser (localStorage). Your keys never leave it.
+Your boards are saved in your browser (localStorage). Your keys never leave it.
 
 ## Add a module or blueprint
 
-Everything lives in `blueprints.js`. A module declares its parameters and builds the request:
+The catalog lives in `blueprints.js`. A module declares its parameters and builds the request:
 
 ```js
 { id: "npm", name: "npm downloads", category: "dev", desc: "How many times a package was downloaded.",
@@ -38,7 +42,17 @@ Everything lives in `blueprints.js`. A module declares its parameters and builds
   build: (p, s) => ({ name: `${p.pkg} / ${s.period.label}`, url: `https://api.npmjs.org/downloads/point/${p.period}/${p.pkg}`, path: "downloads" }) },
 ```
 
-Parameter types: `choice`, `text`, `place`.
+Parameter types:
+
+| Type | What it is |
+|------|-----------|
+| `choice` | Chips. Only listed values are ever used, also from share links. |
+| `text` | Free text. |
+| `place` | Search any place, presets, or "my location". |
+| `secret` | An API key. Stored in the browser (`beyond.keys`), never in the board or a link. Without one the widget asks for it, unless `optional: true`. |
+| `search` | Pick from a list fetched once and cached for a week (SL stops, SR channels). See `SEARCHERS` in `js/lookups.js`. |
+
+`build()` may also return `transform: data => …` to reshape the response before the path is applied, and `local: "todo"` (or `note`, `pomodoro`, `clock`, `radio`) for widgets drawn by `js/local.js` instead of calling an API.
 
 Paths support `[now]` (the entry in a time-sliced array that covers the current moment, e.g. 15-minute electricity prices) and templates support filters: `{net|countdown}`, `{date|date}`, `{time|time}`, `{n|compact}`. A blueprint is either a module preset or a raw API:
 
@@ -49,17 +63,28 @@ Paths support `[now]` (the entry in a time-sliced array that covers the current 
 ```
 
 Rules for the bank:
-1. No API key required.
+1. No API key required (or a `secret` param with a key-less fallback).
 2. It must answer requests from a browser. Test by running `fetch("<url>")` in your browser's console on any website.
 3. Refresh no faster than the API's fair use (60 seconds or more for most).
 
 All fields are documented at the top of `blueprints.js`.
 
+## Code and tests
+
+No build step: `index.html` loads classic scripts from `js/` in order (`engine` → `displays` → `lookups` → `local` → `app` → `bank` → `editor` → `share` → `boards` → `welcome` → `boot`), so it still opens straight from disk. `js/engine.js` and `js/displays.js` touch no DOM when they load, which lets the tests run them in Node:
+
+```sh
+node --test
+```
+
+The tests cover paths, templates and formatting, share links (round trip, stripped secrets, hostile links), every module and blueprint in the catalog, XSS through every display type, and migrating old saves. They run on every push in GitHub Actions.
+
 Drag-and-drop is powered by [gridstack.js](https://gridstackjs.com) (MIT), vendored in `vendor/`.
 
 ## Roadmap
 
-- [ ] CI job that checks every blueprint still responds
+- [ ] Charts for time series, and widgets that combine several APIs
+- [ ] Nightly CI job that checks every blueprint still responds
 - [ ] Community layout gallery
 - [ ] MCP server: let Claude add and arrange widgets from chat
 

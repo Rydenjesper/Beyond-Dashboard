@@ -15,6 +15,15 @@
   Option fields a module choice can carry:
     unit, prefix, decimals, min, max, format (time|date|duration|compact|wmo), ok, warn,
     displays: which display types make sense, first one is the default
+
+  Local widgets (no API): a module whose build() returns { local: "todo" | "note" | "pomodoro" | "clock" | "radio" }.
+    They are drawn by js/local.js and keep their content in beyond.local.v1, outside the board.
+
+  Parameter types: choice | text | place | secret | search
+    search: pick from a list fetched once (js/lookups.js SEARCHERS). Value: { value, label }.
+    secret: an API key. Stored in the browser (beyond.keys), never in the board or share links.
+            { key, label, type: "secret", optional?, help?: "https://where-to-get-one", store?: "shared-id" }
+            Without a key the widget asks for one instead of calling the API (unless optional).
 */
 
 (function () {
@@ -180,6 +189,64 @@ window.MODULES = [
     ],
     displays: ["beacon"],
     build: (p, s) => ({ name: `${s.service.label} status`, url: `https://${p.service}/api/v2/status.json`, path: "status.indicator", ok: ["none"], warn: ["minor"], refresh: 120 }) },
+
+  /* ── Personal: no API. Content lives on this device (beyond.local.v1) and never in share links. */
+  { id: "todo", name: "To-do list", category: "personal", desc: "Add, tick off, drag to reorder. Each list keeps its own tasks.",
+    params: [{ key: "title", label: "List name", type: "text", default: "To do", placeholder: "Groceries, This week…" }],
+    displays: ["local"], build: p => ({ name: p.title || "To do", local: "todo", size: [2, 2] }) },
+  { id: "note", name: "Note", category: "personal", desc: "A scratchpad with simple formatting: # heading, **bold**, - lists.",
+    params: [{ key: "title", label: "Name", type: "text", default: "Note" }],
+    displays: ["local"], build: p => ({ name: p.title || "Note", local: "note", size: [2, 2] }) },
+  { id: "pomodoro", name: "Pomodoro timer", category: "personal", desc: "Focus and break intervals with a chime. Shows the time left in the tab title.",
+    params: [
+      { key: "work", label: "Focus", type: "choice", default: "25", options: ["15", "20", "25", "30", "45", "50"].map(v => ({ value: v, label: `${v} min` })) },
+      { key: "brk", label: "Break", type: "choice", default: "5", options: ["3", "5", "10", "15"].map(v => ({ value: v, label: `${v} min` })) },
+    ],
+    displays: ["local"], build: p => ({ name: "Pomodoro", local: "pomodoro", work: +p.work, brk: +p.brk, size: [2, 2] }) },
+  { id: "clock", name: "Clock", category: "personal", desc: "Your time, plus any other time zones you care about.",
+    params: [
+      { key: "zones", label: "Other time zones", type: "text", default: "America/New_York, Asia/Tokyo", placeholder: "Europe/London, America/Los_Angeles" },
+      { key: "h12", label: "Format", type: "choice", default: "24", options: [{ value: "24", label: "24-hour" }, { value: "12", label: "12-hour" }] },
+    ],
+    displays: ["local"], build: p => ({ name: "Clock", local: "clock", zones: String(p.zones || "").split(",").map(s => s.trim()).filter(Boolean).slice(0, 8), h12: p.h12 === "12", size: [2, 2] }) },
+
+  { id: "sl", name: "SL departures", category: "sweden",
+    desc: "Live departures from any SL stop in Stockholm: metro, bus, commuter train, tram and boat.",
+    params: [
+      { key: "stop", label: "Stop", type: "search", search: "sl_sites", default: { value: "9192", label: "Slussen" }, placeholder: "Search a stop…" },
+      { key: "mode", label: "Only", type: "choice", default: "all", options: [
+        { value: "all", label: "Everything" }, { value: "METRO", label: "Metro" }, { value: "BUS", label: "Bus" }, { value: "TRAIN", label: "Train" },
+        { value: "TRAM", label: "Tram" }, { value: "SHIP", label: "Boat" } ] },
+      { key: "line", label: "Line", type: "text", default: "", placeholder: "Any line, or e.g. 17" },
+      { key: "dir", label: "Direction", type: "choice", default: "all", options: [{ value: "all", label: "Both" }, { value: "1", label: "1" }, { value: "2", label: "2" }] },
+    ],
+    displays: ["list", "ticker", "text"],
+    build: (p, s, display) => {
+      const q = [p.mode !== "all" && `transport=${p.mode}`, /^\w{1,6}$/.test(p.line.trim()) && `line=${p.line.trim()}`, p.dir !== "all" && `direction=${p.dir}`, "forecast=60"].filter(Boolean).join("&");
+      return { name: `${p.stop.label}${p.line.trim() ? ` · ${p.line.trim()}` : p.mode !== "all" ? ` · ${s.mode.label.toLowerCase()}` : ""}`,
+        url: `https://transport.integration.sl.se/v1/sites/${encodeURIComponent(p.stop.value)}/departures?${q}`, refresh: 60,
+        transform: d => ({ departures: (d.departures || []).map(x => ({ line: x.line?.designation || "", dest: x.destination || "",
+          when: x.state === "CANCELLED" ? "cancelled" : x.display === "Nu" ? "now" : x.display, warn: x.deviations?.length ? " ⚠" : "" })) }),
+        ...(display === "text" ? { path: "{departures[0].line} {departures[0].dest} · {departures[0].when}" } : { path: "departures", item: "{line} {dest} · {when}{warn}" }) };
+    } },
+  { id: "radio", name: "Sveriges Radio live", category: "sweden", desc: "Listen to any of SR's 52 channels, with the song that's playing now.",
+    params: [{ key: "channel", label: "Channel", type: "search", search: "sr_channels", default: { value: "164", label: "P3" }, placeholder: "P1, P2, P4 Göteborg…" }],
+    displays: ["local"], build: p => ({ name: p.channel.label, local: "radio", channel: p.channel.value, size: [2, 1] }) },
+
+  { id: "nasa_neo", name: "Near-Earth asteroids", category: "space",
+    desc: "Asteroids passing Earth today, from NASA. Add your own free key if the shared demo key runs out.",
+    params: [
+      { key: "show", label: "Show", type: "choice", default: "count", options: [
+        { value: "count", label: "How many", displays: ["stat"] },
+        { value: "list", label: "List", displays: ["list"] },
+      ] },
+      { key: "key", label: "NASA API key", type: "secret", optional: true, placeholder: "Uses DEMO_KEY if empty", help: "https://api.nasa.gov/" },
+    ],
+    build: (p, s) => ({ name: "Asteroids passing today",
+      url: `https://api.nasa.gov/neo/rest/v1/feed?start_date={YYYY}-{MM}-{DD}&end_date={YYYY}-{MM}-{DD}&api_key=${encodeURIComponent(p.key || "DEMO_KEY")}`,
+      ...(p.show === "count" ? { path: "element_count", unit: "rocks" }
+        : { path: "near_earth_objects.{YYYY}-{MM}-{DD}", item: "{name} · {close_approach_data[0].miss_distance.lunar|round} × Moon distance" }),
+      refresh: 3600 }) },
 
   { id: "github", name: "GitHub repo", category: "dev",
     desc: "Stars, forks or issues for any public repository.",
