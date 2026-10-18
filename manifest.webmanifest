@@ -1,7 +1,7 @@
 {
   "name": "Beyond Dashboard",
   "short_name": "Beyond",
-  "description": "A dashboard for the internet's weirdest live data.",
+  "description": "Live data on one board: weather, electricity prices, departures, space and markets.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

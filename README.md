@@ -5,7 +5,7 @@
 [![Live demo](https://img.shields.io/badge/demo-live-brightgreen.svg)](https://rydenjesper.github.io/Beyond-Dashboard/)
 [![No build step](https://img.shields.io/badge/build_step-none-lightgrey.svg)](#code-and-tests)
 
-A modular dashboard for the internet's weirdest live data. Pick a module, choose what to show and where (UV index in the Sahara, waves at Point Nemo, your own city's pollen), drag it anywhere on the board, connect your own endpoints and share the whole layout as a link.
+Live data on one board: 140+ widgets on free APIs for weather, electricity prices, departures, space and markets. Pick what to show and where (your electricity price, the next bus, the aurora over Kiruna, UV in the Sahara), drag it anywhere, chart it, connect your own endpoints, share the whole layout as a link, or let Claude build and edit boards for you over MCP.
 
 No backend, no build step, no account. Open `index.html`, or try it live: **[rydenjesper.github.io/Beyond-Dashboard](https://rydenjesper.github.io/Beyond-Dashboard/)**
 

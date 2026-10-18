@@ -1,7 +1,7 @@
 {
   "name": "beyond-dashboard",
   "private": true,
-  "description": "A modular dashboard for the internet's weirdest live data. No backend, no build step.",
+  "description": "Live data on one board: 140+ widgets on free APIs for weather, electricity prices, departures, space and markets. Charts, offline, share as a link, and Claude can build and edit boards over MCP. No backend, no build step, no account.",
   "license": "MIT",
   "repository": "github:Rydenjesper/Beyond-Dashboard",
   "homepage": "https://rydenjesper.github.io/Beyond-Dashboard/",

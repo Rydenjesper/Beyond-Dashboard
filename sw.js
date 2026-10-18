@@ -1,7 +1,7 @@
 /* Beyond Dashboard service worker: keeps the app shell so it starts offline.
    API responses are never cached here; widgets keep their own last answer in IndexedDB.
    VERSION follows the ?v= cache-buster in index.html: bump both on every release. */
-const VERSION = "v12";
+const VERSION = "v13";
 const SHELL = ["./", "index.html", "manifest.webmanifest", "icons/icon.svg", "icons/icon-192.png",
   `css/app.css?${VERSION.replace("v", "v=")}`, `blueprints.js?${VERSION.replace("v", "v=")}`,
   `vendor/gridstack-all.js?${VERSION.replace("v", "v=")}`, `vendor/gridstack.min.css?${VERSION.replace("v", "v=")}`,
