@@ -27,6 +27,10 @@
     They are drawn by js/local.js and keep their content in beyond.local.v1, outside the board.
 
   Parameter types: choice | text | place | secret | search
+    choice: shown as chips, or as a dropdown when there are more than 6 options.
+    text extras: pick: "<picker>" → a dropdown of known values; suggest: "<picker>" → suggestions while typing;
+                 input: "date" → a date picker with "every year"; input: "zones" → time zones added from a list.
+                 Pickers live in js/lookups.js (PICKERS). The value stays plain text either way.
     search: pick from a list fetched once (js/lookups.js SEARCHERS). Value: { value, label }.
     secret: an API key. Stored in the browser (beyond.keys), never in the board or share links.
             { key, label, type: "secret", optional?, help?: "https://where-to-get-one", store?: "shared-id" }
@@ -75,7 +79,7 @@ window.MODULES = [
   { id: "polisen", name: "Swedish police", category: "sweden",
     desc: "The latest police events, for all of Sweden or one county or town.",
     params: [
-      { key: "place", label: "County or town", type: "text", default: "Stockholm", placeholder: "Leave empty for all of Sweden" },
+      { key: "place", label: "County or town", type: "text", default: "Stockholm", placeholder: "Leave empty for all of Sweden", suggest: "police" },
     ],
     displays: ["list", "ticker"],
     build: p => ({ name: p.place ? `Police · ${p.place}` : "Police · all of Sweden",
@@ -181,7 +185,7 @@ window.MODULES = [
   { id: "crypto", name: "Crypto price", category: "money",
     desc: "Spot price for any coin Coinbase lists.",
     params: [
-      { key: "coin", label: "Coin", type: "text", default: "BTC", placeholder: "BTC, ETH, SOL, DOGE…", upper: true },
+      { key: "coin", label: "Coin", type: "text", default: "BTC", placeholder: "BTC, ETH, SOL, DOGE…", upper: true, suggest: "coins" },
       { key: "fiat", label: "In", type: "choice", default: "USD", options: [
         { value: "USD", label: "USD", prefix: "$" }, { value: "EUR", label: "EUR", prefix: "€" },
         { value: "SEK", label: "SEK", unit: "kr" }, { value: "GBP", label: "GBP", prefix: "£" },
@@ -193,8 +197,8 @@ window.MODULES = [
   { id: "fx", name: "Exchange rate", category: "money",
     desc: "What one unit of a currency buys in another.",
     params: [
-      { key: "from", label: "From", type: "text", default: "EUR", placeholder: "EUR", upper: true },
-      { key: "to", label: "To", type: "text", default: "SEK", placeholder: "SEK", upper: true },
+      { key: "from", label: "From", type: "text", default: "EUR", placeholder: "EUR", upper: true, pick: "currencies" },
+      { key: "to", label: "To", type: "text", default: "SEK", placeholder: "SEK", upper: true, pick: "currencies" },
     ],
     displays: ["stat"],
     build: p => ({ name: `${p.from} → ${p.to}`, url: `https://open.er-api.com/v6/latest/${encodeURIComponent(p.from)}`, path: `rates.${p.to}`, unit: p.to, decimals: 3, refresh: 3600 }) },
@@ -252,7 +256,7 @@ window.MODULES = [
   { id: "wiki_views", name: "Wikipedia page views", category: "knowledge",
     desc: "How many people read an article each day: a hype meter for anything.",
     params: [
-      { key: "article", label: "Article", type: "text", default: "Taylor Swift", placeholder: "Exact article title" },
+      { key: "article", label: "Article", type: "text", default: "Taylor Swift", placeholder: "Start typing a title", suggest: "wiki_titles" },
       { key: "lang", label: "Wikipedia", type: "choice", default: "en", options: [
         { value: "en", label: "English" }, { value: "sv", label: "Svenska" }, { value: "de", label: "Deutsch" }, { value: "fr", label: "Français" } ] },
       { key: "days", label: "Over the last", type: "choice", default: "30", options: [{ value: "30", label: "30 days" }, { value: "90", label: "90 days" }] },
@@ -453,7 +457,7 @@ window.MODULES = [
     desc: "Your next SL departure and whether it will rain in the next hour.",
     params: [
       { key: "stop", label: "Stop", type: "search", search: "sl_sites", default: { value: "9192", label: "Slussen" }, placeholder: "Search a stop…" },
-      { key: "line", label: "Line", type: "text", default: "", placeholder: "Any line, or e.g. 4" },
+      { key: "line", label: "Line", type: "text", default: "", placeholder: "Any line", suggest: "sl_lines" },
       { key: "place", label: "Rain where", type: "place", default: P["Stockholm"] },
     ],
     displays: ["text"],
@@ -468,7 +472,7 @@ window.MODULES = [
       { key: "place", label: "Home", type: "place", default: P["Stockholm"] },
       { key: "zone", label: "Electricity zone", type: "choice", default: "SE3", options: [
         { value: "none", label: "Skip" }, { value: "SE1", label: "SE1" }, { value: "SE2", label: "SE2" }, { value: "SE3", label: "SE3" }, { value: "SE4", label: "SE4" } ] },
-      { key: "country", label: "Holidays in", type: "text", default: "SE", placeholder: "SE, NO, DE…", upper: true },
+      { key: "country", label: "Holidays in", type: "text", default: "SE", placeholder: "SE, NO, DE…", upper: true, pick: "countries" },
     ],
     displays: ["text"],
     build: p => { const cc = /^[A-Z]{2}$/.test(p.country) ? p.country : "SE";
@@ -494,7 +498,7 @@ window.MODULES = [
   { id: "countdown", name: "Countdown", category: "personal", desc: "Days left until something you're looking forward to.",
     params: [
       { key: "title", label: "Until", type: "text", default: "Christmas Eve", placeholder: "Vacation, launch day…" },
-      { key: "date", label: "Date", type: "text", default: "12-24", placeholder: "2026-07-01, or 12-24 for every year" },
+      { key: "date", label: "Date", type: "text", default: "12-24", placeholder: "2026-07-01, or 12-24 for every year", input: "date" },
     ],
     displays: ["local"], build: p => ({ name: p.title || "Countdown", local: "countdown", date: String(p.date || "").trim(), size: [2, 1] }) },
   { id: "moon", name: "Moon phase", category: "personal", desc: "Tonight's moon, worked out on your device. No API needed.",
@@ -505,7 +509,7 @@ window.MODULES = [
     displays: ["local"], build: (p, s) => ({ name: `${s.of.label} so far`, local: "progress", of: p.of, size: [2, 2] }) },
   { id: "clock", name: "Clock", category: "personal", desc: "Your time, plus any other time zones you care about.",
     params: [
-      { key: "zones", label: "Other time zones", type: "text", default: "America/New_York, Asia/Tokyo", placeholder: "Europe/London, America/Los_Angeles" },
+      { key: "zones", label: "Other time zones", type: "text", default: "America/New_York, Asia/Tokyo", placeholder: "Add a city…", input: "zones" },
       { key: "h12", label: "Format", type: "choice", default: "24", options: [{ value: "24", label: "24-hour" }, { value: "12", label: "12-hour" }] },
     ],
     displays: ["local"], build: p => ({ name: "Clock", local: "clock", zones: String(p.zones || "").split(",").map(s => s.trim()).filter(Boolean).slice(0, 8), h12: p.h12 === "12", size: [2, 2] }) },
@@ -517,7 +521,7 @@ window.MODULES = [
       { key: "mode", label: "Only", type: "choice", default: "all", options: [
         { value: "all", label: "Everything" }, { value: "METRO", label: "Metro" }, { value: "BUS", label: "Bus" }, { value: "TRAIN", label: "Train" },
         { value: "TRAM", label: "Tram" }, { value: "SHIP", label: "Boat" } ] },
-      { key: "line", label: "Line", type: "text", default: "", placeholder: "Any line, or e.g. 17" },
+      { key: "line", label: "Line", type: "text", default: "", placeholder: "Any line", suggest: "sl_lines" },
       { key: "dir", label: "Direction", type: "choice", default: "all", options: [{ value: "all", label: "Both" }, { value: "1", label: "1" }, { value: "2", label: "2" }] },
     ],
     displays: ["list", "ticker", "text"],
@@ -655,7 +659,7 @@ window.MODULES = [
   { id: "holidays", name: "Public holidays", category: "knowledge",
     desc: "The next public holidays in any country.",
     params: [
-      { key: "country", label: "Country code", type: "text", default: "SE", placeholder: "SE, NO, US, DE…", upper: true },
+      { key: "country", label: "Country", type: "text", default: "SE", placeholder: "SE, NO, US, DE…", upper: true, pick: "countries" },
       { key: "show", label: "Show", type: "choice", default: "next", options: [
         { value: "next", label: "Next one", displays: ["text"] }, { value: "list", label: "Coming up", displays: ["list"] },
       ] },

@@ -238,6 +238,7 @@ Jesper tyckte att det var rörigt hur widgets kunde visas: blandade datum, och v
 - [x] Trasiga widgets: euroområdets arbetslöshet (`EA21` sedan 2026), "Most read on Wikipedia" (flyttad till toppvisnings-API:t, som ligger cirka 2 dagar efter), Warframe (utgångna fissures), Polisen ("1d ago · typ, plats" i stället för svensk datumtext) och metallpriser (automatiska decimaler).
 - [x] Tester: History-regeln för hela katalogen, språket i datum och tomma lägen.
 - [x] Service workern är avstängd på localhost (`?sw=1` för att testa offline), eftersom den annars serverar gammal kod under utveckling.
+- [x] Dropdowns i stället för fritext (Jespers önskemål): valfält med fler än 6 alternativ blir dropdown, `pick` ger dropdown för kända listor (valutor 166 st, helgdagsländer 204 st), `suggest` ger förslag men tillåter fri text (mynt, Polisens län/orter, SL-linjer från vald hållplats, Wikipedia-titlar), datumväljare med "Every year" för nedräkning, tidszoner läggs till från en lista. Värdena sparas som förut, så gamla widgets och länkar fungerar. Listorna finns i `PICKERS` i `js/lookups.js`.
 
 ## Milstolpar
 

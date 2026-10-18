@@ -1,6 +1,6 @@
 const test = require("node:test"), assert = require("node:assert/strict");
 const { load } = require("./load");
-const $ = load("js/engine.js", "blueprints.js");
+const $ = load("js/engine.js", "blueprints.js", "js/lookups.js");
 const cfgUrls = $("cfgUrls"), compileExpr = $("compileExpr"), buildCfg = $("buildCfg"), MODULES = $("window.MODULES"), BLUEPRINTS = $("window.BLUEPRINTS"), PLACES = $("window.PLACES");
 const DISPLAYS = ["stat", "gauge", "text", "list", "ticker", "image", "beacon", "json", "chart", "history"];
 const MOD = Object.fromEntries(MODULES.map(m => [m.id, m]));
@@ -64,5 +64,13 @@ test("History is only offered where the big number is a number", () => {
       assert.ok(!isTemplate(h.path) && !Array.isArray(h.yFields), `${m.id} ${JSON.stringify(p)}: history would draw text or a list`);
       assert.equal(h.path, buildCfg(m, { ...p, display: "stat" }, {}).path, `${m.id} ${JSON.stringify(p)}: history must draw the same value as the big number`);
     }
+  }
+});
+
+test("dropdowns and suggestions point at pickers that exist", () => {
+  const PICKERS = $("PICKERS");
+  for (const m of MODULES) for (const x of m.params) {
+    for (const k of ["pick", "suggest"]) if (x[k]) { assert.equal(x.type, "text", `${m.id}.${x.key}: ${k} is for text params`); assert.equal(typeof PICKERS[x[k]], "function", `${m.id}.${x.key}: no picker “${x[k]}”`); }
+    if (x.input) assert.ok(["date", "zones"].includes(x.input), `${m.id}.${x.key}: unknown input ${x.input}`);
   }
 });

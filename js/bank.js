@@ -57,9 +57,24 @@ function openConfig(m, w) {
 function renderConfigForm() {
   const m = cfgMod, p = cfgParams, built = buildCfg(m, p, cfgSecrets), ds = built.displays;   // the same views buildCfg allows
   const html = m.params.map(x => {
+    if (x.type === "choice" && x.options.length > 6) return `<div class="param"><label for="p_${x.key}">${esc(x.label)}</label><select class="input" id="p_${x.key}" data-choice="${x.key}">${x.options.map(o =>
+      `<option value="${esc(o.value)}"${o.value === p[x.key] ? " selected" : ""}>${esc(o.label)}</option>`).join("")}</select></div>`;
     if (x.type === "choice") return `<div class="param"><span class="lbl">${esc(x.label)}</span><div class="chips">${x.options.map(o =>
       `<button type="button" class="chip" data-k="${x.key}" data-v="${esc(o.value)}" aria-pressed="${o.value === p[x.key]}">${esc(o.label)}</button>`).join("")}</div></div>`;
-    if (x.type === "text") return `<div class="param"><label for="p_${x.key}">${esc(x.label)}</label><input class="input" style="width:100%" id="p_${x.key}" data-text="${x.key}" value="${esc(p[x.key])}" placeholder="${esc(x.placeholder || "")}" autocomplete="off" spellcheck="false"></div>`;
+    if (x.type === "text" && x.pick) return `<div class="param"><label for="p_${x.key}">${esc(x.label)}</label><select class="input" id="p_${x.key}" data-text="${x.key}" data-pick="${x.pick}"><option value="${esc(p[x.key])}" selected>${esc(p[x.key] || "Loading…")}</option></select></div>`;
+    if (x.type === "text" && x.input === "date") {
+      const v = String(p[x.key] || ""), yearly = /^\d{1,2}-\d{1,2}$/.test(v), d = nextDate(v);
+      const iso = d ? `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` : "";
+      return `<div class="param"><label for="p_${x.key}">${esc(x.label)}</label><div class="date-row"><input class="input" type="date" id="p_${x.key}" data-date="${x.key}" value="${iso}">
+        <label class="check"><input type="checkbox" data-yearly="${x.key}"${yearly ? " checked" : ""}> Every year</label></div></div>`;
+    }
+    if (x.type === "text" && x.input === "zones") {
+      const zones = String(p[x.key] || "").split(",").map(z => z.trim()).filter(Boolean);
+      return `<div class="param"><label for="p_${x.key}">${esc(x.label)}</label><div class="chips zones">${zones.map(z =>
+        `<button type="button" class="chip" data-zone-del="${x.key}" data-z="${esc(z)}" title="Remove">${esc(z.split("/").pop().replace(/_/g, " "))} <em>×</em></button>`).join("") || `<span class="muted">Only your own time</span>`}</div>
+        <input class="input" style="width:100%;margin-top:8px" id="p_${x.key}" data-zone-add="${x.key}" list="dl_${x.key}" placeholder="${esc(x.placeholder || "Add…")}" autocomplete="off"><datalist id="dl_${x.key}" data-fill="timezones"></datalist></div>`;
+    }
+    if (x.type === "text") return `<div class="param"><label for="p_${x.key}">${esc(x.label)}</label><input class="input" style="width:100%" id="p_${x.key}" data-text="${x.key}" value="${esc(p[x.key])}" placeholder="${esc(x.placeholder || "")}" autocomplete="off" spellcheck="false"${x.suggest ? ` list="dl_${x.key}" data-suggest="${x.suggest}"` : ""}>${x.suggest ? `<datalist id="dl_${x.key}"></datalist>` : ""}</div>`;
     if (x.type === "search") return `<div class="param"><label for="p_${x.key}">${esc(x.label)}</label>
       <div class="place-search"><input class="input" id="p_${x.key}" data-search="${x.key}" placeholder="${esc(x.placeholder || "Search…")}" autocomplete="off" spellcheck="false">
         <div class="place-results" id="res_${x.key}" hidden></div></div>
@@ -76,7 +91,25 @@ function renderConfigForm() {
   }).join("") + (ds.length > 1 ? `<div class="param"><span class="lbl">Display as</span><div class="chips">${ds.map(d =>
     `<button type="button" class="chip" data-display="${d}" aria-pressed="${d === built.display}">${DISPLAY_NAMES[d]}</button>`).join("")}</div></div>` : "");
   $("#cfgForm").innerHTML = html;
+  fillPickers();
 }
+/* Dropdowns and suggestion lists load their options after the form is drawn (most lists are cached). */
+const optionsHTML = (items, cur) => items.map(it => `<option value="${esc(it.value)}"${it.value === cur ? " selected" : ""}${it.label !== it.value ? ` label="${esc(it.label)}"` : ""}>${esc(it.label)}</option>`).join("");
+function fillPickers() {
+  $$("#cfgForm select[data-pick]").forEach(async sel => {
+    const key = sel.dataset.text, cur = cfgParams[key];
+    try {
+      const items = await PICKERS[sel.dataset.pick]("", cfgParams);
+      if (!sel.isConnected) return;
+      sel.innerHTML = optionsHTML(items.some(i => i.value === cur) || !cur ? items : [{ value: cur, label: cur }, ...items], cur);
+    } catch { sel.innerHTML = `<option value="${esc(cur)}">${esc(cur)} (list unavailable)</option>`; }
+  });
+  $$("#cfgForm datalist[data-fill]").forEach(async dl => { try { dl.innerHTML = optionsHTML(await PICKERS[dl.dataset.fill]("", cfgParams)); } catch {} });
+}
+const fillSuggest = debounce(async input => {
+  const dl = $(`#${input.getAttribute("list")}`); if (!dl) return;
+  try { dl.innerHTML = optionsHTML(await PICKERS[input.dataset.suggest](input.value, cfgParams)); } catch {}
+}, 250);
 $("#cfgForm").addEventListener("click", async e => {
   const t = e.target.closest("button"); if (!t) return;
   if (t.dataset.preset != null) { const { note, ...pl } = PLACES[+t.dataset.preset]; cfgParams[t.dataset.k] = pl; }
@@ -89,6 +122,7 @@ $("#cfgForm").addEventListener("click", async e => {
       cfgParams[t.dataset.geo] = { name: "My location", lat: +pos.coords.latitude.toFixed(3), lon: +pos.coords.longitude.toFixed(3) };
     } catch { toast("Location isn't available here. Search for your city instead."); t.disabled = false; return; }
   }
+  else if (t.dataset.zoneDel) cfgParams[t.dataset.zoneDel] = String(cfgParams[t.dataset.zoneDel] || "").split(",").map(s => s.trim()).filter(z => z && z !== t.dataset.z).join(", ");
   else if (t.dataset.k) cfgParams[t.dataset.k] = t.dataset.v;
   else return;
   renderConfigForm(); refreshPreview();
@@ -97,11 +131,30 @@ $("#cfgForm").addEventListener("input", e => {
   if (e.target.dataset.text) {
     const x = cfgMod.params.find(p => p.key === e.target.dataset.text);
     cfgParams[x.key] = x.upper ? e.target.value.trim().toUpperCase() : e.target.value.trim();
+    if (e.target.dataset.suggest) fillSuggest(e.target);
     refreshPreviewSoon();
   }
   if (e.target.dataset.secret) { cfgSecrets[e.target.dataset.secret] = e.target.value.trim(); refreshPreviewSoon(); }
   if (e.target.dataset.search) searchLookup(e.target.value, e.target.dataset.search);
   if (e.target.dataset.place) searchPlace(e.target.value, e.target.dataset.place);
+});
+$("#cfgForm").addEventListener("focusin", e => { if (e.target.dataset.suggest) fillSuggest(e.target); });
+$("#cfgForm").addEventListener("change", e => {
+  const t = e.target, d = t.dataset;
+  if (d.choice) cfgParams[d.choice] = t.value;
+  else if (d.date || d.yearly) {
+    const key = d.date || d.yearly, date = $(`#p_${key}`).value, yearly = $(`[data-yearly="${key}"]`).checked;
+    if (!date) return;
+    cfgParams[key] = yearly ? date.slice(5) : date;   // "12-24" repeats every year, "2026-07-01" happens once
+  } else if (d.zoneAdd) {
+    const all = Intl.supportedValuesOf?.("timeZone") || [], v = t.value.trim();
+    const z = all.find(x => x === v) || all.find(x => x.split("/").pop().replace(/_/g, " ").toLowerCase() === v.toLowerCase());
+    if (!z) { toast("Pick a city from the list"); return; }
+    const zones = String(cfgParams[d.zoneAdd] || "").split(",").map(s => s.trim()).filter(Boolean);
+    if (!zones.includes(z)) zones.push(z);
+    cfgParams[d.zoneAdd] = zones.join(", ");
+  } else return;
+  renderConfigForm(); refreshPreview();
 });
 const searchPlace = debounce(async (q, key) => {
   const box = $("#placeResults"); if (!box) return;
@@ -133,7 +186,7 @@ function refreshPreview() {
   const rows = Math.min(h, 2);
   $("#cfgPreview").innerHTML = cardHTML(c, false);
   $("#cfgPreview .w").style.setProperty("--ph", `${rows * 128 + (rows - 1) * 12}px`);
-  $("#cfgMeta").textContent = maskSecrets(fillPlaceholders(c.url), c);
+  $("#cfgMeta").textContent = c.local ? "No API: everything stays on this device." : cfgUrls(c).map(u => maskSecrets(fillPlaceholders(u), c)).join("\n");
   const mine = cfgRT = { history: [], cfg: c, preview: true };
   if (c.local) { mountLocal($("#cfgPreview .w-b"), c, "preview"); $("#cfgPreview .age").textContent = ""; return; }
   $("#cfgPreview .w-b").innerHTML = render(c, mine, 3);

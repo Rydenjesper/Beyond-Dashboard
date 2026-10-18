@@ -26,7 +26,10 @@ function paramSummary(x) {
   if (x.type === "place") return { key: x.key, type: "place", hint: "a place name like \"Göteborg\", or { name, lat, lon }" };
   if (x.type === "search") return { key: x.key, type: "search", hint: `a name to look up (${x.search === "sl_sites" ? "SL stop" : "SR channel"}), e.g. "${x.default.label}"` };
   if (x.type === "secret") return { key: x.key, type: "secret", hint: "API key: can't be set from here, the user adds it in the app" + (x.optional ? " (optional)" : "") };
-  return { key: x.key, type: x.type, default: x.default, ...(x.placeholder ? { hint: x.placeholder } : {}) };
+  const HINTS = { currencies: "an ISO currency code, e.g. SEK", countries: "a two-letter country code, e.g. SE", coins: "a coin symbol, e.g. BTC",
+    police: "a Swedish county (\"Skåne län\") or town (\"Malmö\")", sl_lines: "a line number at the chosen stop, or empty for all", wiki_titles: "an exact Wikipedia article title" };
+  const hint = x.input === "date" ? "YYYY-MM-DD for one date, or MM-DD for every year" : x.input === "zones" ? "comma-separated IANA time zones, e.g. \"Europe/London, Asia/Tokyo\"" : HINTS[x.pick || x.suggest] || x.placeholder;
+  return { key: x.key, type: x.type, default: x.default, ...(hint ? { hint } : {}) };
 }
 
 /* ── search_catalog ── */
