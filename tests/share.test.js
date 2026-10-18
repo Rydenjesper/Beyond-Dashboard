@@ -85,3 +85,19 @@ test("a custom chart keeps its fields and its grid position through a link", asy
   const [w] = hydrate(await decode(await encode(share(b).payload)), MODS, BANK).widgets;
   assert.deepEqual([w.x, w.y, w.w, w.h, w.xField, w.yFields, w.chart, w.display], [2, 3, 4, 2, "[0]", ["[1]"], "line", "chart"]);
 });
+
+test("credentials in a custom URL never travel, whatever the parameter is called", () => {
+  const url = "https://api.resrobot.se/v2.1/departureBoard?id=740000002&format=json&accessId=K1&lang=sv&client_secret=K2&appid=K3&sig=K4&password=K5&x-api-key=K6&demo=DEMO_KEY";
+  const { payload, stripped } = share({ title: "t", widgets: [{ id: "a", name: "x", url, path: "", display: "list", x: 0, y: 0, w: 2, h: 2 }] });
+  const txt = JSON.stringify(payload);
+  for (const k of ["K1", "K2", "K3", "K4", "K5", "K6"]) assert.ok(!txt.includes(`=${k}`), `${k} leaked`);
+  for (const keep of ["id=740000002", "format=json", "lang=sv"]) assert.ok(txt.includes(keep), `${keep} should stay`);
+  assert.equal(stripped, 6);
+  const keepNames = "passengers=2&monkey=1&keyword=x&lang=sv&access_level=1";
+  const kept = JSON.stringify(share({ title: "t", widgets: [{ id: "c", name: "z", url: `https://x.test/?${keepNames}`, path: "", display: "text", x: 0, y: 0, w: 2, h: 1 }] }).payload);
+  assert.ok(kept.includes(keepNames), "ordinary parameters that only contain those letters are kept");
+  const more = JSON.stringify(share({ title: "t", widgets: [{ id: "d", name: "w", url: "https://x.test/?apikey=A1&subscription-key=A2&access_token=A3&key=A4&Authorization=A5&client_id=A6", path: "", display: "text", x: 0, y: 0, w: 2, h: 1 }] }).payload);
+  for (const k of ["A1", "A2", "A3", "A4", "A5", "A6"]) assert.ok(!more.includes(k), `${k} leaked`);
+  const src = share({ title: "t", widgets: [{ id: "b", name: "y", display: "stat", value: "a", sources: { a: { url: "https://x.test/?accessId=K7", path: "" } }, x: 0, y: 0, w: 2, h: 1 }] });
+  assert.ok(!JSON.stringify(src.payload).includes("K7"), "sources of combined widgets too");
+});

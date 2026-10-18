@@ -369,6 +369,8 @@ function sanitizeParams(m, p) {
   return out;
 }
 const SECRET = /auth|key|token|secret|cookie|password|session/i;
+/* URL parameters that carry credentials under any common name: api_key, accessId (ResRobot), client_secret, appid, sig… */
+const SECRET_PARAM = /(^|[_.-])(api[_-]?)?(key|token|secret|auth|authorization|signature|sig|password|passwd|pwd|credentials?|session|cookie)$|^access(_?(id|key|token))?$|^app_?(id|key)$|^client_?(id|secret)$/i;
 /* The link carries layout and settings, never keys: secret params, auth headers and ?key= values are removed. */
 function shareable(board, mods) {
   let stripped = 0;
@@ -382,7 +384,10 @@ function shareable(board, mods) {
     const { id, x, y, w: _w, h, ...c } = clone(w);
     const clean = o => {
       if (o.headers) { o.headers = Object.fromEntries(Object.entries(o.headers).filter(([k]) => !(SECRET.test(k) && ++stripped))); if (!Object.keys(o.headers).length) delete o.headers; }
-      if (/[?&](api_?key|key|token|access_token|apikey)=(?!DEMO_KEY)/i.test(o.url || "")) { o.url = o.url.replace(/([?&](?:api_?key|key|token|access_token|apikey)=)[^&]*/gi, "$1YOUR_KEY"); stripped++; }
+      if (o.url) o.url = String(o.url).replace(/([?&])([^=&#]+)=([^&#]*)/g, (m, sep, name, val) => {
+        if (!SECRET_PARAM.test(decodeURIComponent(name)) || !val || /^(DEMO_KEY|YOUR_KEY)$/i.test(val)) return m;
+        stripped++; return `${sep}${name}=YOUR_KEY`;
+      });
     };
     clean(c); Object.values(c.sources || {}).forEach(s => s && clean(s));
     return { c, ...pos };
