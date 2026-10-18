@@ -1,0 +1,42 @@
+name: Suggest an API
+description: A source of live data you'd like as a widget.
+title: "Widget: "
+labels: ["new widget"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks! Widgets need an API that answers browser requests without a key. A quick check saves a lot of back and forth:
+        open any https page, open the browser console and run `fetch("YOUR_URL").then(r => r.json()).then(console.log)`.
+  - type: input
+    id: url
+    attributes:
+      label: API address
+      description: An example URL that returns the data.
+      placeholder: https://api.example.com/v1/thing
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What should the widget show?
+      placeholder: The current number of …, as a big number / a list / a chart
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: It works without an API key (or is worth an exception, see below)
+        - label: The fetch() test in the browser console returned data (no CORS error)
+        - label: I checked the API's terms allow this kind of use
+  - type: input
+    id: refresh
+    attributes:
+      label: How often does the data change?
+      placeholder: Every minute / hourly / daily
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything else

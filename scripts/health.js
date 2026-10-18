@@ -1,5 +1,6 @@
 /* Catalog health check: calls every URL the catalog can build, from "GitHub Pages", and writes status.json.
    A widget is OK when its API answers 2xx with an Access-Control-Allow-Origin header, or 429 (busy, not broken).
+   Anything that fails is tried once more, ten seconds later, before it counts.
    Run: node scripts/health.js   (GitHub Actions runs it every night) */
 const fs = require("node:fs"), path = require("node:path");
 const { load, ROOT } = require("../tests/load");
@@ -33,6 +34,12 @@ async function check(url) {
   for (let i = 0; i < urls.length; i += 6) {   // a few at a time, so no API sees a burst
     const batch = urls.slice(i, i + 6);
     (await Promise.all(batch.map(check))).forEach((r, j) => byUrl[batch[j]] = r);
+  }
+  /* A second chance, slowly: a network blip or a busy API shouldn't flag a widget for a whole day. */
+  const failed = urls.filter(u => !byUrl[u].ok);
+  if (failed.length) {
+    await new Promise(r => setTimeout(r, 10000));
+    for (const u of failed) byUrl[u] = await check(u);
   }
   const results = {};
   for (const [id, set] of entries) {

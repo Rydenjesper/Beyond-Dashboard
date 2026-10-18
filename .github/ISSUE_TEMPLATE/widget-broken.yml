@@ -1,0 +1,25 @@
+name: A widget stopped working
+description: A widget shows an error, wrong data or nothing at all.
+title: "Broken: "
+labels: ["broken widget"]
+body:
+  - type: input
+    id: widget
+    attributes:
+      label: Widget
+      description: Its name in the widget bank, and the settings if it's a module.
+      placeholder: Electricity price now, zone SE3
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What do you see?
+      description: The message in the widget, or what's wrong with the data. A screenshot helps.
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and device
+      placeholder: Chrome on Mac, Safari on iPad…

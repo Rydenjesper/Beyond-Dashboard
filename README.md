@@ -1,5 +1,10 @@
 # BEYOND_DASHBOARD
 
+[![CI](https://github.com/Rydenjesper/Beyond-Dashboard/actions/workflows/ci.yml/badge.svg)](https://github.com/Rydenjesper/Beyond-Dashboard/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Live demo](https://img.shields.io/badge/demo-live-brightgreen.svg)](https://rydenjesper.github.io/Beyond-Dashboard/)
+[![No build step](https://img.shields.io/badge/build_step-none-lightgrey.svg)](#code-and-tests)
+
 A modular dashboard for the internet's weirdest live data. Pick a module, choose what to show and where (UV index in the Sahara, waves at Point Nemo, your own city's pollen), drag it anywhere on the board, connect your own endpoints and share the whole layout as a link.
 
 No backend, no build step, no account. Open `index.html`, or try it live: **[rydenjesper.github.io/Beyond-Dashboard](https://rydenjesper.github.io/Beyond-Dashboard/)**
@@ -127,7 +132,7 @@ The proxy address is stored in your browser like an API key and never travels in
 No build step: `index.html` loads classic scripts from `js/` in order (`engine` → `displays` → `lookups` → `local` → `app` → `bank` → `editor` → `share` → `boards` → `welcome` → `boot`), so it still opens straight from disk. `js/engine.js` and `js/displays.js` touch no DOM when they load, which lets the tests run them in Node:
 
 ```sh
-node --test
+npm test        # or: node --test
 ```
 
 The tests cover paths, templates and formatting, the expression language (including attempts to escape it), share links (round trip, stripped secrets, hostile links), every module and blueprint in the catalog, XSS through every display type, and migrating old saves. They run on every push in GitHub Actions. Every night the same workflow runs `scripts/health.js`, which calls every API in the catalog the way GitHub Pages would and writes `status.json`; the widget bank marks anything that stopped answering.
@@ -137,6 +142,10 @@ Releasing: bump `?v=` on every script and stylesheet in `index.html` **and** `VE
 After adding or changing APIs, run `node scripts/audit-displays.js`. It renders every module, choice and view against live data and lists anything that looks wrong (empty values, raw dates, JSON where text should be, a list where a number should be).
 
 Drag-and-drop is powered by [gridstack.js](https://gridstackjs.com) (MIT), vendored in `vendor/`.
+
+## Contributing
+
+New widgets are the best way to help: an API with live data that answers browser requests without a key. [CONTRIBUTING.md](CONTRIBUTING.md) covers running it, adding a module, the catalog rules and the checks (`npm test`, `npm run audit`, `npm run health`; no dependencies to install). Have an idea but no time? Open a [Suggest an API](https://github.com/Rydenjesper/Beyond-Dashboard/issues/new?template=suggest-api.yml) issue. Security problems: see [SECURITY.md](SECURITY.md).
 
 ## Roadmap
 

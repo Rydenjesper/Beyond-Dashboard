@@ -1,0 +1,16 @@
+{
+  "name": "beyond-dashboard",
+  "private": true,
+  "description": "A modular dashboard for the internet's weirdest live data. No backend, no build step.",
+  "license": "MIT",
+  "repository": "github:Rydenjesper/Beyond-Dashboard",
+  "homepage": "https://rydenjesper.github.io/Beyond-Dashboard/",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "start": "python3 -m http.server 8000",
+    "test": "node --test --test-timeout=30000",
+    "audit": "node scripts/audit-displays.js",
+    "health": "node scripts/health.js",
+    "mcp": "node mcp/server.js"
+  }
+}
