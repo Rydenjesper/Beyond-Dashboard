@@ -26,3 +26,7 @@ test("search params from a link keep only value and label", () => {
   assert.deepEqual(sanitizeParams(SL, { stop: { value: 1234, label: "Odenplan", evil: "<x>" } }).stop, { value: "1234", label: "Odenplan" });
   assert.equal(sanitizeParams(SL, { stop: { value: {}, label: "x" } }).stop, undefined);
 });
+
+test("SL: no departures says so, in every view", () => {
+  for (const display of ["text", "list"]) assert.equal(resolve(buildCfg(SL, { display }), { departures: [] }), "No departures in the next hour");
+});

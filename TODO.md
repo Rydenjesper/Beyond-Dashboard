@@ -227,6 +227,18 @@ Boards ligger i webbläsaren, så servern skriver aldrig direkt. Den bygger en b
 - [x] Verifierat: `claude mcp list` → Connected. Länken från `build_board` öppnad i Chrome → "Add as new board" → alla widgets laddar.
 - [ ] Senare: en live-koppling (WebSocket på localhost med parning) så att Claude kan ändra befintliga boards.
 
+## 9. Visningsstädning (2026-10-18)
+
+Jesper tyckte att det var rörigt hur widgets kunde visas: blandade datum, och visningslägen som inte fungerade. `scripts/audit-displays.js` renderar alla 736 kombinationer av modul, val och vy mot riktiga data. Det som hittades är fixat:
+
+- [x] Datum och tider följer `LOCALE = "en-GB"` överallt (inte webbläsarens språk): "18 Oct 2026", 24 h.
+- [x] "History" erbjuds bara när det stora talet är ett tal: inte klockslag, nedräkningar eller listor. Konfiguratorn använder nu samma regel som `buildCfg` (den räknade på egen hand förut).
+- [x] Custom API-editorn gråar ut vyer som inte passar värdet, med en förklaring ("Gauge, needs a number").
+- [x] Tomma lägen säger vad de betyder (`empty`), till exempel SL: "No departures in the next hour" i stället för "·".
+- [x] Trasiga widgets: euroområdets arbetslöshet (`EA21` sedan 2026), "Most read on Wikipedia" (flyttad till toppvisnings-API:t, som ligger cirka 2 dagar efter), Warframe (utgångna fissures), Polisen ("1d ago · typ, plats" i stället för svensk datumtext) och metallpriser (automatiska decimaler).
+- [x] Tester: History-regeln för hela katalogen, språket i datum och tomma lägen.
+- [x] Service workern är avstängd på localhost (`?sw=1` för att testa offline), eftersom den annars serverar gammal kod under utveckling.
+
 ## Milstolpar
 
 Gör en milstolpe i taget. Släpp den (bumpa versionen, pusha, testa live på GitHub Pages) innan nästa påbörjas.

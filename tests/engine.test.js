@@ -86,3 +86,14 @@ test("buildCfg: secret params come from the key store, never from params", () =>
   assert.equal(c2.needsKey, undefined);
   assert.deepEqual(c2.secrets, ["mine"]);
 });
+
+test("dates and times are always English, 24-hour, whatever the browser's language", () => {
+  assert.equal(fmt("2026-10-16T12:00:00", { format: "date" }), "16 Oct 2026");
+  assert.equal(fmt("2026-10-16T07:05:00", { format: "time" }), "07:05");
+  assert.equal($("LOCALE"), "en-GB");
+});
+
+test("an empty list can say what it means", () => {
+  assert.equal(resolve({ path: "d", template: "{0.a} · {0.b}", empty: "Nothing leaves" }, { d: [] }), "Nothing leaves");
+  assert.equal(resolve({ path: "d", template: "{0.a} · {0.b}", empty: "Nothing leaves" }, { d: [{ a: 1, b: 2 }] }), "1 · 2");
+});

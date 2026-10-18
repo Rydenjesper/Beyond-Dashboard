@@ -17,8 +17,9 @@ $("#config").addEventListener("close", () => cfgCtrl?.abort());
 document.addEventListener("visibilitychange", () => { if (!document.hidden) rt.forEach((r, id) => { if (r.updated && Date.now() - r.updated > (r.cfg.refresh || 300) * 1000) load(id); }); });
 
 pruneLocal(boards.boards); pruneHistory(boards.boards);
-/* Installable app: the service worker only runs on https (or localhost), never from file://. */
-if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) navigator.serviceWorker.register("sw.js").catch(() => {});
+/* Installable app: the service worker runs on the https site. Locally it stays off (it would serve cached code while
+   you edit) unless you ask for it with ?sw=1 to test offline mode. Never from file://. */
+if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost" && new URLSearchParams(location.search).has("sw"))) navigator.serviceWorker.register("sw.js").catch(() => {});
 addEventListener("online", () => rt.forEach((r, id) => { if (r.stale || r.error) load(id); }));
 addEventListener("offline", () => rt.forEach((r, id) => paint(id)));
 

@@ -72,7 +72,7 @@ $("#bkFile").addEventListener("change", async e => {
   } catch (err) { pendingBackup = null; toast(err instanceof SyntaxError ? "This isn't a Beyond backup file." : err.message); return; }
   const bs = migrateBoards(pendingBackup.data[BOARDS], pendingBackup.data[KEY])?.boards || [], when = Date.parse(pendingBackup.exported);
   const what = bs.length === 1 ? `“${bs[0].title}” with ${bs[0].widgets.length} widgets` : `${bs.length} boards with ${bs.reduce((n, b) => n + b.widgets.length, 0)} widgets`;
-  $("#bkText").textContent = `Restore ${what}${isNaN(when) ? "" : `, saved ${new Date(when).toLocaleDateString()}`}? This replaces everything in this browser${KEYS in pendingBackup.data ? ", including your API keys" : ". Your API keys stay as they are"}.`;
+  $("#bkText").textContent = `Restore ${what}${isNaN(when) ? "" : `, saved ${new Date(when).toLocaleDateString(LOCALE, { day: "numeric", month: "short", year: "numeric" })}`}? This replaces everything in this browser${KEYS in pendingBackup.data ? ", including your API keys" : ". Your API keys stay as they are"}.`;
   $("#bkConfirm").hidden = false;
 });
 $("#bkCancel").addEventListener("click", () => { pendingBackup = null; $("#bkConfirm").hidden = true; });

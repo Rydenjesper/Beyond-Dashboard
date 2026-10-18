@@ -196,7 +196,7 @@ function keepLast(id, r) {
   lastDB.put(id, { value: r.value, level: r.level, data, updated: r.updated });
 }
 const ageText = r => r.error && !r.updated ? "error"
-  : (r.stale || r.error) && !navigator.onLine && r.updated ? `Offline · from ${new Date(r.updated).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : timeAgo(r.updated);
+  : (r.stale || r.error) && !navigator.onLine && r.updated ? `Offline · from ${new Date(r.updated).toLocaleTimeString(LOCALE, { hour: "2-digit", minute: "2-digit" })}` : timeAgo(r.updated);
 
 /* Every number a widget shows is remembered (200 points, beyond.history.v1), so sparklines
    and the History view survive a reload. */

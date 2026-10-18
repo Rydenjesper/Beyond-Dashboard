@@ -226,7 +226,36 @@ F("path").addEventListener("input", () => {
   if ([...sel.options].some(o => o.value === p && !o.textContent.startsWith("Custom"))) sel.value = p; else renderPathOptions();
   markTreeRow(); renderItemFields();
 });
+/* Only offer views that can show the chosen value: a gauge needs a number, a list needs a list. */
+const NEEDS = { stat: "a number or short text", gauge: "a number", history: "a number", list: "a list", ticker: "a list", chart: "a list of items with numbers", image: "an image address", beacon: "a value", text: "a value", json: "a value" };
+function fitDisplays(v) {
+  if (v === undefined) return null;   // nothing fetched yet: everything stays open
+  const num = v !== null && v !== "" && typeof v !== "boolean" && !isNaN(Number(v)), arr = Array.isArray(v);
+  const objs = arr && v.some(x => x && typeof x === "object" && Object.values(x).some(y => y !== "" && y !== null && !isNaN(Number(y))));
+  const ok = new Set(["json"]);
+  if (num) ["stat", "gauge", "history", "text", "beacon"].forEach(d => ok.add(d));
+  else if (typeof v === "string" || typeof v === "boolean") {
+    ["text", "beacon"].forEach(d => ok.add(d));
+    if (String(v).length <= 24) ok.add("stat");
+    if (/^https:\/\/\S+$/.test(String(v))) ok.add("image");
+  } else if (arr) { ["list", "ticker"].forEach(d => ok.add(d)); if (objs || v.length > 1 && v.every(Array.isArray)) ok.add("chart"); }
+  return ok;
+}
+function updateDisplayOptions() {
+  let v;
+  if (combo) { const r = comboResult(); v = r.error ? undefined : r.value; }
+  else if (exData !== undefined) { try { v = resolve({ ...readForm(), display: "list", template: undefined }, exData); } catch {} }
+  const ok = fitDisplays(v);
+  [...F("display").options].forEach(o => {
+    o.dataset.label ||= o.textContent;
+    const fits = !ok || ok.has(o.value);
+    o.disabled = !fits && o.value !== F("display").value;   // the current choice stays selectable so nothing jumps
+    o.textContent = fits ? o.dataset.label : `${o.dataset.label}, needs ${NEEDS[o.value]}`;
+  });
+}
+
 function updatePreview() {
+  updateDisplayOptions();
   if (combo) {
     const out = comboResult(), c = readForm();
     $("#ex_preview").textContent = out.error ? out.error : `${out.level ? { ok: "Green", warn: "Yellow", bad: "Red" }[out.level] + " · " : ""}${typeof out.value === "object" ? JSON.stringify(out.value).slice(0, 120) : `${c.prefix || ""}${fmt(out.value, c)}${c.unit ? " " + c.unit : ""}`}`;

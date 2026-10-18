@@ -32,12 +32,12 @@ const DISPLAYS = {
     return `<blockquote class="txt${s.length > 130 ? " long" : ""}"><p>${esc(s)}</p></blockquote>`;
   },
   list(c, v) {
-    const arr = Array.isArray(v) ? v : v && typeof v === "object" ? Object.values(v) : [v];
+    const arr = c.empty && v === c.empty ? [] : Array.isArray(v) ? v : v && typeof v === "object" ? Object.values(v) : [v];
     const items = arr.slice(0, 25).map((it, i) => `<li><b>${pad(i + 1)}</b><span>${esc(c.item ? tmpl(c.item, it) : typeof it === "object" ? JSON.stringify(it) : it)}</span></li>`).join("");
-    return `<ul class="list">${items || "<li>Nothing here right now.</li>"}</ul>`;
+    return `<ul class="list">${items || `<li>${esc(c.empty || "Nothing here right now.")}</li>`}</ul>`;
   },
   ticker(c, v) {
-    const arr = (Array.isArray(v) ? v : [v]).slice(0, 20).map(it => c.item ? tmpl(c.item, it) : typeof it === "object" ? JSON.stringify(it) : String(it));
+    const arr = c.empty && v === c.empty ? [v] : (Array.isArray(v) ? v : [v]).slice(0, 20).map(it => c.item ? tmpl(c.item, it) : typeof it === "object" ? JSON.stringify(it) : String(it));
     const spans = arr.map(s => `<span>${esc(s)}</span>`).join("");
     return `<div class="ticker"><div class="ticker-track" style="--dur:${Math.max(30, arr.join("").length / 7)}s">${spans}${spans}</div></div>`;
   },
@@ -86,9 +86,9 @@ function xLabel(v, t, f) {
   const d = new Date(t);
   if (f === "hour") return pad(d.getHours());
   if (f === "time") return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
-  if (f === "day") return d.toLocaleDateString([], { weekday: "short" });
-  if (f === "month") return d.toLocaleDateString([], { month: "short", year: "2-digit" });
-  return d.toLocaleDateString([], { day: "numeric", month: "short" });
+  if (f === "day") return d.toLocaleDateString(LOCALE, { weekday: "short" });
+  if (f === "month") return d.toLocaleDateString(LOCALE, { month: "short", year: "2-digit" });
+  return d.toLocaleDateString(LOCALE, { day: "numeric", month: "short" });
 }
 const axisNum = v => Math.abs(v) >= 1000 ? new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 }).format(v) : String(+v.toFixed(2));
 function chartSeries(c) {
@@ -154,6 +154,7 @@ DISPLAYS.chart = function (c, v) {
 
 /* history: the widget's own recorded values over time, drawn as a line. */
 DISPLAYS.history = function (c, v, r) {
+  if (v != null && v !== "" && isNaN(Number(v))) return `<div class="state">This value is text, not a number, so it can't be drawn over time.</div>`;
   const h = (r && r.hist) || [];
   if (h.length < 2) return `<div class="state">Collecting history. A line appears after a few refreshes.</div>`;
   return DISPLAYS.chart({ ...c, xField: "t", yFields: [{ y: "v", label: c.name, unit: c.unit || "" }], chart: "line", scale: undefined }, h.map(([t, val]) => ({ t, v: val })));

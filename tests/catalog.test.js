@@ -50,3 +50,19 @@ test("every blueprint has the required fields and builds", () => {
     else { assert.match(b.url, /^https:\/\//, `${b.id}: url`); assert.ok(DISPLAYS.includes(b.display), `${b.id}: display`); }
   }
 });
+
+test("History is only offered where the big number is a number", () => {
+  const NOT_NUMBERS = $("NOT_NUMBERS"), isTemplate = $("isTemplate");
+  for (const m of MODULES) {
+    let combos = [{}];
+    m.params.forEach(x => { if (x.type === "choice") combos = combos.flatMap(c => x.options.map(o => ({ ...c, [x.key]: o.value }))).slice(0, 60); });
+    for (const p of combos) {
+      const c = buildCfg(m, p, {});
+      if (!c.displays.includes("history")) continue;
+      const h = buildCfg(m, { ...p, display: "history" }, {});
+      assert.ok(!NOT_NUMBERS.includes(h.format), `${m.id} ${JSON.stringify(p)}: history offered for a ${h.format} value`);
+      assert.ok(!isTemplate(h.path) && !Array.isArray(h.yFields), `${m.id} ${JSON.stringify(p)}: history would draw text or a list`);
+      assert.equal(h.path, buildCfg(m, { ...p, display: "stat" }, {}).path, `${m.id} ${JSON.stringify(p)}: history must draw the same value as the big number`);
+    }
+  }
+});

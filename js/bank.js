@@ -55,7 +55,7 @@ function openConfig(m, w) {
   $("#config").showModal();
 }
 function renderConfigForm() {
-  const m = cfgMod, p = cfgParams, s = modSelected(m, p), ds = modDisplays(m, s);
+  const m = cfgMod, p = cfgParams, built = buildCfg(m, p, cfgSecrets), ds = built.displays;   // the same views buildCfg allows
   const html = m.params.map(x => {
     if (x.type === "choice") return `<div class="param"><span class="lbl">${esc(x.label)}</span><div class="chips">${x.options.map(o =>
       `<button type="button" class="chip" data-k="${x.key}" data-v="${esc(o.value)}" aria-pressed="${o.value === p[x.key]}">${esc(o.label)}</button>`).join("")}</div></div>`;
@@ -74,7 +74,7 @@ function renderConfigForm() {
       <div class="chips place-presets">${PLACES.map((pl, i) => `<button type="button" class="chip" data-preset="${i}" data-k="${x.key}" aria-pressed="${pl.name === p[x.key].name}" title="${esc(pl.note || "")}">${esc(pl.name)}</button>`).join("")}</div></div>`;
     return "";
   }).join("") + (ds.length > 1 ? `<div class="param"><span class="lbl">Display as</span><div class="chips">${ds.map(d =>
-    `<button type="button" class="chip" data-display="${d}" aria-pressed="${d === (ds.includes(p.display) ? p.display : ds[0])}">${DISPLAY_NAMES[d]}</button>`).join("")}</div></div>` : "");
+    `<button type="button" class="chip" data-display="${d}" aria-pressed="${d === built.display}">${DISPLAY_NAMES[d]}</button>`).join("")}</div></div>` : "");
   $("#cfgForm").innerHTML = html;
 }
 $("#cfgForm").addEventListener("click", async e => {

@@ -25,7 +25,7 @@ function fillPlaceholders(s) {
   return String(s)
     .replace(/\{YYYY\}/g, d.getFullYear()).replace(/\{MM\}/g, pad(d.getMonth() + 1)).replace(/\{DD\}/g, pad(d.getDate()))
     .replace(/\{SEASON\}/g, d.getMonth() >= 6 ? d.getFullYear() : d.getFullYear() - 1)
-    .replace(/\{(date|ymd):([+-]\d+)\}/g, (_, f, n) => { const x = new Date(d); x.setDate(x.getDate() + +n); const s = `${x.getFullYear()}-${pad(x.getMonth() + 1)}-${pad(x.getDate())}`; return f === "ymd" ? s.replace(/-/g, "") : s; })
+    .replace(/\{(date|ymd|dpath):([+-]\d+)\}/g, (_, f, n) => { const x = new Date(d); x.setDate(x.getDate() + +n); const s = `${x.getFullYear()}-${pad(x.getMonth() + 1)}-${pad(x.getDate())}`; return f === "ymd" ? s.replace(/-/g, "") : f === "dpath" ? s.replace(/-/g, "/") : s; })
     .replace(/\{rand:(\d+)-(\d+)\}/g, (_, a, b) => +a + Math.floor(Math.random() * (+b - +a + 1)));
 }
 /* [now] picks the entry of a time-sliced array that covers the current moment (electricity prices, schedules). */
@@ -74,6 +74,7 @@ function resolve(c, data) {
   if (typeof c.transform === "function") data = c.transform(data);   // only modules can set this; links can't carry functions
   const path = fillPlaceholders(c.path || "");
   let v = isTemplate(path) ? tmpl(path, data) : pick(data, path);
+  if (c.empty && (v == null || (Array.isArray(v) && !v.length))) return c.empty;   // "No departures in the next hour" rather than " · "
   if (c.template && v != null) v = tmpl(c.template, v);
   if (c.scale != null && v != null && v !== "" && !isNaN(Number(v))) v = Number(v) * c.scale;
   return unescapeHTML(v);
@@ -85,12 +86,14 @@ function countdown(v) {
   const txt = d ? `${d}d ${h}h` : h ? `${h}h ${pad(m)}m` : `${m}m`;
   return s < 60 ? "now" : past ? `${txt} ago` : `in ${txt}`;
 }
+/* Every date and time in the app uses this locale, so months never switch language with the browser. */
+const LOCALE = "en-GB";
 function fmtDuration(sec) { sec = Math.round(+sec); if (isNaN(sec)) return "—"; const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60); return h ? `${h}h ${pad(m)}m` : `${m}m`; }
 function fmt(v, c) {
   if (v == null || v === "") return "—";
   switch (c.format) {
-    case "time": { const d = new Date(v); return isNaN(d) ? String(v) : d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }); }
-    case "date": { const d = new Date(v); return isNaN(d) ? String(v) : d.toLocaleDateString([], { day: "numeric", month: "short", year: "numeric" }); }
+    case "time": { const d = new Date(v); return isNaN(d) ? String(v) : d.toLocaleTimeString(LOCALE, { hour: "2-digit", minute: "2-digit" }); }
+    case "date": { const d = new Date(v); return isNaN(d) ? String(v) : d.toLocaleDateString(LOCALE, { day: "numeric", month: "short", year: "numeric" }); }
     case "duration": return fmtDuration(v);
     case "compact": { const n = Number(v); return isNaN(n) ? String(v) : new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 }).format(n); }
     case "wmo": return WMO[v] || `Code ${v}`;
@@ -123,6 +126,8 @@ const getSecret = (m, x) => store.get(KEYS, {})[secretId(m, x)] || "";
 function setSecret(m, x, v) { const k = store.get(KEYS, {}); if (v) k[secretId(m, x)] = v; else delete k[secretId(m, x)]; store.set(KEYS, k); }
 const secretParams = m => m.params.filter(x => x.type === "secret");
 /* secrets: optional {key: value} that overrides the stored keys (the configurator's unsaved input). */
+/* Formats that turn a value into words or clock times: those can't be drawn over time. */
+const NOT_NUMBERS = ["time", "date", "countdown", "wmo", "duration"];
 function buildCfg(m, params, secrets) {
   const p = { ...modDefaults(m), ...params };
   let needsKey = null;
@@ -130,11 +135,16 @@ function buildCfg(m, params, secrets) {
     p[x.key] = (secrets && x.key in secrets ? secrets[x.key] : getSecret(m, x)).trim();
     if (!p[x.key] && !x.optional) needsKey = { label: x.label, help: x.help };
   });
-  const s = modSelected(m, p), ds = modDisplays(m, s);
+  const s = modSelected(m, p);
+  let ds = modDisplays(m, s);
   m.params.forEach(x => { if (x.type === "choice") p[x.key] = s[x.key].value; });   // never build a URL from a value that isn't an option
-  const display = ds.includes(p.display) ? p.display : ds[0];
   const extra = {}; Object.values(s).forEach(({ value, label, displays, ...rest }) => Object.assign(extra, rest));
-  const c = { refresh: 900, ...extra, ...m.build(p, s, display), display, category: m.category, displays: ds };
+  if (ds.includes("history")) {   // offered only when the big number really is a number
+    const probe = { ...extra, ...m.build(p, s, "stat") };
+    if (NOT_NUMBERS.includes(probe.format) || isTemplate(probe.path) || probe.sources && !probe.value) ds = ds.filter(d => d !== "history");
+  }
+  const display = ds.includes(p.display) ? p.display : ds[0];
+  const c = { refresh: 900, ...extra, ...m.build(p, s, display === "history" ? "stat" : display), display, category: m.category, displays: ds };
   if (needsKey) c.needsKey = needsKey;
   const hide = secretParams(m).map(x => p[x.key]).filter(Boolean);
   if (hide.length) c.secrets = hide;   // masked wherever the URL is shown
@@ -314,7 +324,7 @@ const vals = v => Array.isArray(v) ? v.filter(x => typeof x === "string" || type
 /* A custom widget from a link keeps only fields the engine knows, each with the right type. */
 const CUSTOM_FIELDS = {
   name: v => str(v, 120), url: v => typeof v === "string" && /^https?:\/\//i.test(v) ? v.slice(0, 2000) : undefined,
-  path: v => str(v, 500), item: v => str(v, 500), template: v => str(v, 500), caption: v => str(v, 200),
+  path: v => str(v, 500), item: v => str(v, 500), empty: v => str(v, 120), template: v => str(v, 500), caption: v => str(v, 200),
   display: v => DISPLAY_TYPES.includes(v) ? v : undefined, format: v => FORMATS.includes(v) ? v : undefined,
   prefix: v => str(v, 20), unit: v => str(v, 20), category: v => str(v, 20),
   min: v => num(v, -1e15, 1e15), max: v => num(v, -1e15, 1e15), scale: v => num(v, -1e15, 1e15),
@@ -409,4 +419,4 @@ function migrateBoards(saved, old) {
   return b ? { active: b.id, boards: [b] } : null;
 }
 
-if (typeof module !== "undefined") module.exports = { esc, maskSecrets, uid, pad, clamp, clone, store, host, debounce, WMO, fillPlaceholders, pickNow, pick, unescapeHTML, isTemplate, tmpl, resolve, countdown, fmtDuration, fmt, timeAgo, modDefaults, modSelected, modDisplays, buildCfg, getSecret, setSecret, secretParams, catalogHosts, encode, decode, hydrate, shareable, migrateBoards, compileExpr, evalExpr, combine, cfgUrls, sunTimes, isNight, sanitizeCustom, sanitizeParams, SHARE_MAX };
+if (typeof module !== "undefined") module.exports = { esc, maskSecrets, uid, pad, clamp, clone, store, host, debounce, WMO, fillPlaceholders, pickNow, pick, unescapeHTML, isTemplate, tmpl, resolve, countdown, fmtDuration, fmt, timeAgo, modDefaults, modSelected, modDisplays, buildCfg, getSecret, setSecret, secretParams, catalogHosts, encode, decode, hydrate, shareable, migrateBoards, compileExpr, evalExpr, combine, cfgUrls, sunTimes, isNight, LOCALE, NOT_NUMBERS, sanitizeCustom, sanitizeParams, SHARE_MAX };

@@ -79,7 +79,9 @@ window.MODULES = [
     ],
     displays: ["list", "ticker"],
     build: p => ({ name: p.place ? `Police · ${p.place}` : "Police · all of Sweden",
-      url: `https://polisen.se/api/events${p.place ? `?locationname=${encodeURIComponent(p.place)}` : ""}`, path: "", item: "{name} — {summary}", refresh: 600 }) },
+      url: `https://polisen.se/api/events${p.place ? `?locationname=${encodeURIComponent(p.place)}` : ""}`, refresh: 600,
+      transform: d => (Array.isArray(d) ? d : []).map(e => ({ when: String(e.datetime || "").replace(" ", "T").replace(" ", ""), what: e.type, where: String(e.name || "").split(",").pop().trim(), summary: e.summary })),
+      path: "", item: "{when|countdown} · {what}, {where}: {summary}" }) },
 
   // ── WEATHER ──────────────────────────────────────────────
   { id: "weather", name: "Weather", category: "weather",
@@ -328,7 +330,7 @@ window.MODULES = [
         { value: "chart", label: "Last two years", displays: ["chart"] }, { value: "now", label: "Latest", displays: ["stat"] } ] },
     ],
     build: (p, s) => ({ name: `${p.what === "infl" ? "Inflation" : "Unemployment"} · ${s.geo.label}`, unit: "%", decimals: 1, refresh: 43200,
-      url: `https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/${p.what === "infl" ? "prc_hicp_manr?coicop=CP00" : "une_rt_m?s_adj=SA&age=TOTAL&sex=T&unit=PC_ACT"}&geo=${p.geo}&lastTimePeriod=24`,
+      url: `https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/${p.what === "infl" ? "prc_hicp_manr?coicop=CP00" : "une_rt_m?s_adj=SA&age=TOTAL&sex=T&unit=PC_ACT"}&geo=${p.geo === "EA20" ? (p.what === "infl" ? "EA" : "EA21") : p.geo}&lastTimePeriod=24`,
       transform: d => ({ points: Object.entries(d.dimension?.time?.category?.index || {}).sort((a, b) => a[1] - b[1]).map(([t, i]) => ({ t: `${t}-01`, v: d.value?.[i] })).filter(x => x.v != null) }),
       ...(p.show === "now" ? { path: "points[-1].v" } : { path: "points", xField: "t", yFields: [{ y: "v", label: p.what === "infl" ? "Inflation" : "Unemployment", unit: "%" }], chart: p.what === "infl" ? "bar" : "line", xFormat: "month", size: [3, 2] }) }) },
 
@@ -392,7 +394,7 @@ window.MODULES = [
         { value: "g", label: "Gram" }, { value: "oz", label: "Troy ounce" }, { value: "kg", label: "Kilo" } ] },
     ],
     displays: ["stat"],
-    build: (p, s) => ({ name: `${s.metal.label} · ${p.cur}/${p.per}`, refresh: 600, decimals: p.per === "g" ? 2 : 0,
+    build: (p, s) => ({ name: `${s.metal.label} · ${p.cur}/${p.per}`, refresh: 600,
       sources: { m: { url: `https://api.gold-api.com/price/${p.metal}`, path: "price" }, fx: { url: "https://open.er-api.com/v6/latest/USD", path: `rates.${p.cur}` } },
       value: `m * fx${{ g: " / 31.1035", oz: "", kg: " * 32.1507" }[p.per]}` }) },
 
@@ -525,7 +527,7 @@ window.MODULES = [
         url: `https://transport.integration.sl.se/v1/sites/${encodeURIComponent(p.stop.value)}/departures?${q}`, refresh: 60,
         transform: d => ({ departures: (d.departures || []).map(x => ({ line: x.line?.designation || "", dest: x.destination || "",
           when: x.state === "CANCELLED" ? "cancelled" : x.display === "Nu" ? "now" : x.display, warn: x.deviations?.length ? " ⚠" : "" })) }),
-        ...(display === "text" ? { path: "{departures[0].line} {departures[0].dest} · {departures[0].when}" } : { path: "departures", item: "{line} {dest} · {when}{warn}" }) };
+        ...(display === "text" ? { path: "departures", template: "{0.line} {0.dest} · {0.when}" } : { path: "departures", item: "{line} {dest} · {when}{warn}" }), empty: "No departures in the next hour" };
     } },
   { id: "radio", name: "Sveriges Radio live", category: "sweden", desc: "Listen to any of SR's 52 channels, with the song that's playing now.",
     params: [{ key: "channel", label: "Channel", type: "search", search: "sr_channels", default: { value: "164", label: "P3" }, placeholder: "P1, P2, P4 Göteborg…" }],
@@ -752,7 +754,8 @@ window.BLUEPRINTS = [
   { id: "bp_fortnite", name: "Fortnite news", desc: "What's new in Battle Royale right now.", category: "fun",
     url: "https://fortnite-api.com/v2/news/br", path: "data.motds", item: "{title}", display: "list", refresh: 3600 },
   { id: "bp_warframe", name: "Warframe void fissures", desc: "Open fissures on PC and when they close.", category: "fun",
-    url: "https://api.warframestat.us/pc/fissures", path: "", item: "{tier} {missionType} · {node} · {expiry|countdown}", display: "list", refresh: 300 },
+    url: "https://api.warframestat.us/pc/fissures", transform: d => (Array.isArray(d) ? d : []).filter(f => Date.parse(f.expiry) > Date.now()).sort((a, b) => Date.parse(a.expiry) - Date.parse(b.expiry)),
+    path: "", item: "{tier} {missionType} · {node} · closes {expiry|countdown}", display: "list", refresh: 300 },
   { id: "bp_mastodon_trends", name: "Trending on Mastodon", desc: "Hashtags people on mastodon.social are using today.", category: "fun",
     url: "https://mastodon.social/api/v1/trends/tags", path: "", item: "#{name} · {history[0].accounts} people", display: "list", refresh: 1800 },
   { id: "bp_eonet", name: "Natural events now", desc: "Wildfires, storms and volcanoes NASA is tracking right now.", category: "earth",
@@ -771,8 +774,10 @@ window.BLUEPRINTS = [
     url: "https://mempool.space/api/blocks/tip/height", path: "", display: "stat", decimals: 0, refresh: 120 },
   { id: "bp_fear_greed", name: "Crypto fear & greed", desc: "Market mood from 0 (panic) to 100 (euphoria).", category: "money",
     url: "https://api.alternative.me/fng/", path: "data[0].value", display: "gauge", min: 0, max: 100, decimals: 0, refresh: 3600 },
-  { id: "bp_wiki_mostread", name: "Most read on Wikipedia", desc: "Today's most-read English articles.", category: "knowledge",
-    url: "https://api.wikimedia.org/feed/v1/wikipedia/en/featured/{YYYY}/{MM}/{DD}", path: "mostread.articles", item: "{normalizedtitle} · {views} views", display: "list", refresh: 21600 },
+  { id: "bp_wiki_mostread", name: "Most read on Wikipedia", desc: "The most-read English articles on the latest full day Wikimedia has counted.", category: "knowledge",
+    url: "https://wikimedia.org/api/rest_v1/metrics/pageviews/top/en.wikipedia/all-access/{dpath:-3}",   // the counts land about two days late
+    transform: d => (d.items?.[0]?.articles || []).filter(a => a.article !== "Main_Page" && !a.article.includes(":")).map(a => ({ title: a.article.replace(/_/g, " "), views: a.views })),
+    path: "", item: "{title} · {views|compact} views", display: "list", refresh: 21600 },
   { id: "bp_useless_fact", name: "Useless fact", desc: "Facts nobody asked for.", category: "knowledge",
     url: "https://uselessfacts.jsph.pl/api/v2/facts/random?language=en", path: "text", display: "text", refresh: 300 },
   { id: "bp_agify", name: "How old is 'Claude'?", desc: "Agify guesses an age from a first name. It's very sure.", category: "knowledge",

@@ -130,7 +130,9 @@ node --test
 
 The tests cover paths, templates and formatting, the expression language (including attempts to escape it), share links (round trip, stripped secrets, hostile links), every module and blueprint in the catalog, XSS through every display type, and migrating old saves. They run on every push in GitHub Actions. Every night the same workflow runs `scripts/health.js`, which calls every API in the catalog the way GitHub Pages would and writes `status.json`; the widget bank marks anything that stopped answering.
 
-Releasing: bump `?v=` on every script and stylesheet in `index.html` **and** `VERSION` in `sw.js`, or installed copies keep the old code.
+Releasing: bump `?v=` on every script and stylesheet in `index.html` **and** `VERSION` in `sw.js`, or installed copies keep the old code. Locally the service worker is off, so edits show up on reload; add `?sw=1` to test offline mode.
+
+After adding or changing APIs, run `node scripts/audit-displays.js`. It renders every module, choice and view against live data and lists anything that looks wrong (empty values, raw dates, JSON where text should be, a list where a number should be).
 
 Drag-and-drop is powered by [gridstack.js](https://gridstackjs.com) (MIT), vendored in `vendor/`.
 

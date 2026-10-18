@@ -260,12 +260,12 @@ const LOCAL = {
     const dayOf = (d, tz) => new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
     root._tick = () => {
       const now = new Date(), here = dayOf(now);
-      root.querySelector(".clock-time").textContent = now.toLocaleTimeString([], opts);
-      root.querySelector(".clock-date").textContent = now.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long" });
+      root.querySelector(".clock-time").textContent = now.toLocaleTimeString(LOCALE, opts);
+      root.querySelector(".clock-date").textContent = now.toLocaleDateString(LOCALE, { weekday: "long", day: "numeric", month: "long" });
       root.querySelectorAll(".clock-zones li").forEach((li, i) => {
         const { z, ok } = zones[i]; if (!ok) return;
         const there = dayOf(now, z), diff = there > here ? " +1" : there < here ? " −1" : "";
-        li.querySelector("b").textContent = now.toLocaleTimeString([], { ...opts, timeZone: z }) + diff;
+        li.querySelector("b").textContent = now.toLocaleTimeString(LOCALE, { ...opts, timeZone: z }) + diff;
       });
     };
     root._tick();
