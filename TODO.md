@@ -227,9 +227,9 @@ Boards ligger i webbläsaren, så servern skriver aldrig direkt. Den bygger en b
 - [x] Verifierat: `claude mcp list` → Connected. Länken från `build_board` öppnad i Chrome → "Add as new board" → alla widgets laddar.
 - [x] Live-koppling så att Claude kan ändra befintliga boards (2026-10-18). `mcp/live.js` startar en HTTP-server på 127.0.0.1:47331 först när Claude anropar `connect_dashboard`. Parning sker med en engångskod (6 siffror, 10 min, max 5 försök) och token. Kommandon går via Server-Sent Events, svar via POST, och bara dashboardens origins besvaras. `js/live.js` utför kommandona med appens egna funktioner, validerar som en delningslänk och ger Undo på varje ändring. Jesper valde: bara layout och inställningar (inget todo-innehåll), ändringar direkt med Undo. Testat i `tests/live.test.js` och end-to-end i Chrome.
 - [x] Platssökningen söker på engelska och webbläsarens språk (`geoSearch` i `js/lookups.js`). "Göteborg" gav tidigare inte staden, eftersom den heter Gothenburg på engelska. Gäller både appen och MCP.
-- [ ] Testa live-kopplingen från GitHub Pages-sidan (https → 127.0.0.1) i Chrome, och se om Safari tillåter den.
+- [ ] Testa live-kopplingen från GitHub Pages-sidan (https → 127.0.0.1) i Chrome, och se om Safari tillåter den. *(Issue #5, tillsammans med PWA-testet.)*
 - [x] Säkerhetsfix (2026-10-18): delningslänkar rensade bara nycklar som hette `key`/`api_key`/`token`. ResRobots `accessId`, `client_secret`, `appid` och liknande slapp igenom. Nu tas alla parameternamn som ser ut som en nyckel eller hemlighet bort (`SECRET_PARAM` i `js/engine.js`). Testat åt båda hållen.
-- [ ] Kollektivtrafik med nyckel: ResRobot går via Custom API (egen nyckel i URL:en, `location.name` för att hitta hållplatsens id). Västtrafik går inte så, eftersom dess token går ut, så det kräver inbyggt stöd för OAuth. Beslut väntar på Jesper.
+- [ ] Kollektivtrafik med nyckel: ResRobot går via Custom API (egen nyckel i URL:en, `location.name` för att hitta hållplatsens id). Västtrafik går inte så, eftersom dess token går ut, så det kräver inbyggt stöd för OAuth. Nu issue #4 (help wanted).
 
 ## 9. Visningsstädning (2026-10-18)
 
@@ -243,6 +243,12 @@ Jesper tyckte att det var rörigt hur widgets kunde visas: blandade datum, och v
 - [x] Tester: History-regeln för hela katalogen, språket i datum och tomma lägen.
 - [x] Service workern är avstängd på localhost (`?sw=1` för att testa offline), eftersom den annars serverar gammal kod under utveckling.
 - [x] Dropdowns i stället för fritext (Jespers önskemål): valfält med fler än 6 alternativ blir dropdown, `pick` ger dropdown för kända listor (valutor 166 st, helgdagsländer 204 st), `suggest` ger förslag men tillåter fri text (mynt, Polisens län/orter, SL-linjer från vald hållplats, Wikipedia-titlar), datumväljare med "Every year" för nedräkning, tidszoner läggs till från en lista. Värdena sparas som förut, så gamla widgets och länkar fungerar. Listorna finns i `PICKERS` i `js/lookups.js`.
+
+## 10. Öppen källkod (2026-10-18)
+
+- [x] CONTRIBUTING, SECURITY, uppförandekod, issue-formulär, PR-mall, `package.json` med skript, ämnestaggar och etiketter. Repot har 100 % community health.
+- [x] Startissues: #1 krymp demo-GIF:en och #2 fler RSS-flöden (good first issue), #3 Entur/Norge och #4 Västtrafik (help wanted), #5 testa på Safari, Firefox och mobil.
+- [ ] Ladda upp `docs/social-preview.png` under Settings → Social preview (Jesper, går inte via API).
 
 ## Milstolpar
 
