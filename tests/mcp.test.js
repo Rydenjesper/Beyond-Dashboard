@@ -8,7 +8,7 @@ const MODS = Object.fromEntries(tools.get("window.MODULES").map(m => [m.id, m]))
 const realFetch = globalThis.fetch;
 globalThis.fetch = async url => {
   url = String(url);
-  if (url.includes("geocoding-api.open-meteo.com")) return Response.json({ results: [{ name: "Göteborg", latitude: 57.70716, longitude: 11.96679, country_code: "SE" }] });
+  if (url.includes("geocoding-api.open-meteo.com")) return Response.json(url.includes("language=sv") ? { results: [{ id: 1, name: "Göteborg", latitude: 57.70716, longitude: 11.96679, country_code: "SE", feature_code: "PPLA", population: 608462 }] } : { results: [{ id: 2, name: "Göteborgnuten", latitude: 78.1, longitude: 15.2, country_code: "SJ", feature_code: "MT" }] });
   if (url.includes("transport.integration.sl.se/v1/sites?")) return Response.json([{ id: 9117, name: "Odenplan", note: "" }, { id: 9192, name: "Slussen", note: "" }]);
   throw new Error(`unexpected fetch in test: ${url}`);
 };
@@ -74,7 +74,8 @@ test("the server speaks MCP over stdio", async () => {
   const by = Object.fromEntries(lines.map(l => [l.id, l]));
   assert.equal(by[1].result.serverInfo.name, "beyond-dashboard");
   assert.equal(by[1].result.protocolVersion, "2025-06-18");
-  assert.deepEqual(by[2].result.tools.map(t => t.name), ["search_catalog", "describe_module", "preview_widget", "build_board"]);
+  assert.deepEqual(by[2].result.tools.map(t => t.name), ["search_catalog", "describe_module", "preview_widget", "build_board",
+    "connect_dashboard", "dashboard_state", "add_widgets", "update_widget", "remove_widgets", "create_board", "rename_board", "show_board"]);
   assert.ok(by[2].result.tools.every(t => t.inputSchema?.type === "object" && t.description));
   assert.equal(JSON.parse(by[3].result.content[0].text).id, "metal");
   assert.equal(by[4].result.isError, true, "tool errors go back to the model");

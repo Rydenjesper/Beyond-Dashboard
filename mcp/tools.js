@@ -62,10 +62,9 @@ function describeModule({ id }) {
 async function geocode(name) {
   const preset = PLACES.find(p => p.name.toLowerCase() === String(name).trim().toLowerCase());
   if (preset) return { name: preset.name, lat: preset.lat, lon: preset.lon };
-  const d = await globalThis.fetchData({ url: `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(String(name).trim())}&count=1&language=en` });
-  const r = d?.results?.[0];
+  const r = (await E("geoSearch")(name, ["en", "sv", "de", "fr", "es"]))[0];   // the app's own place search, in a few languages
   if (!r) throw new Error(`Couldn't find a place called “${name}”.`);
-  return { name: r.name, lat: +r.latitude.toFixed(4), lon: +r.longitude.toFixed(4) };
+  return { name: r.name, lat: r.lat, lon: r.lon };
 }
 async function resolveParams(m, params = {}, warnings, label) {
   const out = {};
@@ -99,31 +98,38 @@ const sizeOf = (c, w, h) => {
 };
 
 /* ── build_board ── */
-async function buildBoard({ title = "From Claude", widgets = [], base_url } = {}) {
-  if (!Array.isArray(widgets) || !widgets.length) throw new Error("Give at least one widget.");
-  if (widgets.length > 40) throw new Error("That's a lot of widgets; keep a board to 40 or fewer.");
-  const warnings = [], board = { title: String(title).slice(0, 100), widgets: [] }, summary = [];
-  for (const [i, spec] of widgets.entries()) {
-    const label = `Widget ${i + 1}`;
+/* Widget specs from chat → widgets in the app's own format (validated). Used by build_board and the live tools. */
+async function specsToWidgets(specs, warnings, prefix = "w") {
+  if (!Array.isArray(specs) || !specs.length) throw new Error("Give at least one widget.");
+  if (specs.length > 40) throw new Error("That's a lot of widgets; keep it to 40 or fewer at a time.");
+  const widgets = [], summary = [];
+  for (const [i, spec] of specs.entries()) {
+    const label = `Widget ${i + 1}`, id = `${prefix}${i}`;
     if (spec.module) {
       const m = MOD[spec.module]; if (!m) throw new Error(`${label}: no module called “${spec.module}”.`);
       const params = await resolveParams(m, spec.params, warnings, label), c = E("buildCfg")(m, params, {});
-      board.widgets.push({ id: `w${i}`, mod: m.id, params, ...(spec.title ? { title: String(spec.title).slice(0, 120) } : {}), ...sizeOf(c, spec.w, spec.h) });
+      widgets.push({ id, mod: m.id, params, ...(spec.title ? { title: String(spec.title).slice(0, 120) } : {}), ...sizeOf(c, spec.w, spec.h) });
       summary.push(`${spec.title || c.name} (${m.id}, ${c.display})${c.needsKey ? ", needs an API key in the app" : ""}`);
     } else if (spec.blueprint) {
       const b = BANK[spec.blueprint]; if (!b) throw new Error(`${label}: no ready-made widget called “${spec.blueprint}”.`);
       const c = b.mod ? E("buildCfg")(MOD[b.mod], b.params, {}) : b;
-      board.widgets.push(b.mod ? { id: `w${i}`, mod: b.mod, params: E("clone")(b.params), title: b.name, ...sizeOf(c, spec.w, spec.h) } : { id: `w${i}`, bp: b.id, ...sizeOf(c, spec.w, spec.h) });
+      widgets.push(b.mod ? { id, mod: b.mod, params: E("clone")(b.params), title: b.name, ...sizeOf(c, spec.w, spec.h) } : { id, bp: b.id, ...sizeOf(c, spec.w, spec.h) });
       summary.push(`${b.name} (${b.id})`);
     } else if (spec.custom) {
       const c = E("sanitizeCustom")(spec.custom);
       if (!c) throw new Error(`${label}: a custom widget needs an https url (or sources).`);
       const outside = E("cfgUrls")(c).map(E("host")).filter(h => !CATALOG_HOSTS.has(h));
       if (outside.length) warnings.push(`${label}: ${[...new Set(outside)].join(", ")} isn't in the catalog, so the app asks before loading it.`);
-      board.widgets.push({ ...c, id: `w${i}`, ...sizeOf(c, spec.w, spec.h) });
+      widgets.push({ ...c, id, ...sizeOf(c, spec.w, spec.h) });
       summary.push(`${c.name} (custom, ${c.display})`);
     } else throw new Error(`${label}: use { module, params }, { blueprint } or { custom }.`);
   }
+  return { widgets, summary };
+}
+
+async function buildBoard({ title = "From Claude", widgets: specs = [], base_url } = {}) {
+  const warnings = [], { widgets, summary } = await specsToWidgets(specs, warnings);
+  const board = { title: String(title).slice(0, 100), widgets };
   const { payload, stripped } = E("shareable")(board, MOD);
   if (stripped) warnings.push(`Removed ${stripped} API key(s) or auth header(s) from custom widgets.`);
   const code = await E("encode")(payload);
@@ -168,4 +174,4 @@ async function previewWidget(spec = {}) {
   return { name: c.name, display: c.display, value: shown, ...(level ? { level } : {}), unit: c.unit, warnings };
 }
 
-module.exports = { searchCatalog, describeModule, buildBoard, previewWidget, get: E };
+module.exports = { searchCatalog, describeModule, buildBoard, previewWidget, specsToWidgets, resolveParams, MOD, get: E };

@@ -105,7 +105,9 @@ Claude Desktop (`claude_desktop_config.json`):
 { "mcpServers": { "beyond": { "command": "node", "args": ["/path/to/Beyond-Dashboard/mcp/server.js"] } } }
 ```
 
-Tools: `search_catalog`, `describe_module`, `preview_widget` (fetches the real value and warns if the API blocks browsers) and `build_board`. Places and SL stops can be given by name. The server runs the app's own engine (`js/engine.js`, `blueprints.js`), so a board from Claude is validated exactly like one from a share link.
+Tools: `search_catalog`, `describe_module`, `preview_widget` (fetches the real value and warns if the API blocks browsers) and `build_board`.
+
+**Live link: let Claude edit your boards.** Ask Claude to connect to your dashboard. It shows a six-digit code; click **Claude** in the dashboard's toolbar and type it. While Claude's session runs it can see your boards and add, change, move, resize and remove widgets, create, rename and switch boards (`dashboard_state`, `add_widgets`, `update_widget`, `remove_widgets`, `create_board`, `rename_board`, `show_board`). Changes appear at once, each with Undo. Claude sees layout and settings only: never your API keys or what's in your to-do lists and notes. The link runs on your own computer (127.0.0.1) and only answers your dashboard; Chrome may ask once whether the page may talk to devices on your local network. Places and SL stops can be given by name. The server runs the app's own engine (`js/engine.js`, `blueprints.js`), so a board from Claude is validated exactly like one from a share link.
 
 ## RSS feeds and the proxy
 
@@ -139,7 +141,6 @@ Drag-and-drop is powered by [gridstack.js](https://gridstackjs.com) (MIT), vendo
 ## Roadmap
 
 - [ ] Community layout gallery
-- [ ] Live link between Claude and an open dashboard (edit existing boards, not just new ones)
 
 ## License
 

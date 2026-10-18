@@ -76,9 +76,8 @@ const wlSearch = debounce(async q => {
   const box = $("#wlResults");
   if (q.trim().length < 2) { box.hidden = true; return; }
   try {
-    const d = await fetchData({ url: `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q.trim())}&count=6&language=en` });
-    const res = d.results || [];
-    box.innerHTML = res.length ? res.map(r => `<button type="button" data-home="${esc(JSON.stringify({ name: r.name, lat: r.latitude, lon: r.longitude, country_code: r.country_code, region: [r.admin1, r.country].filter(Boolean).join(", ") }))}">${esc(r.name)} <small>${esc([r.admin1, r.country].filter(Boolean).join(", "))}</small></button>`).join("")
+    const res = (await geoSearch(q)).slice(0, 6);
+    box.innerHTML = res.length ? res.map(r => `<button type="button" data-home="${esc(JSON.stringify(r))}">${esc(r.name)} <small>${esc(r.region)}</small></button>`).join("")
       : `<button type="button" disabled>No places called “${esc(q)}”</button>`;
     box.hidden = false;
   } catch { box.innerHTML = `<button type="button" disabled>Search is unavailable right now. You can skip this step.</button>`; box.hidden = false; }

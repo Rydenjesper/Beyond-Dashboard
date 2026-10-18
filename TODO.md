@@ -225,7 +225,9 @@ Boards ligger i webbläsaren, så servern skriver aldrig direkt. Den bygger en b
 - [x] `tests/mcp.test.js`: verktygen med mockad fetch, plus protokollet mot en riktig serverprocess.
 - [x] README: "Use it from Claude" med Claude Code och Claude Desktop.
 - [x] Verifierat: `claude mcp list` → Connected. Länken från `build_board` öppnad i Chrome → "Add as new board" → alla widgets laddar.
-- [ ] Senare: en live-koppling (WebSocket på localhost med parning) så att Claude kan ändra befintliga boards.
+- [x] Live-koppling så att Claude kan ändra befintliga boards (2026-10-18). `mcp/live.js` startar en HTTP-server på 127.0.0.1:47331 först när Claude anropar `connect_dashboard`. Parning sker med en engångskod (6 siffror, 10 min, max 5 försök) och token. Kommandon går via Server-Sent Events, svar via POST, och bara dashboardens origins besvaras. `js/live.js` utför kommandona med appens egna funktioner, validerar som en delningslänk och ger Undo på varje ändring. Jesper valde: bara layout och inställningar (inget todo-innehåll), ändringar direkt med Undo. Testat i `tests/live.test.js` och end-to-end i Chrome.
+- [x] Platssökningen söker på engelska och webbläsarens språk (`geoSearch` i `js/lookups.js`). "Göteborg" gav tidigare inte staden, eftersom den heter Gothenburg på engelska. Gäller både appen och MCP.
+- [ ] Testa live-kopplingen från GitHub Pages-sidan (https → 127.0.0.1) i Chrome, och se om Safari tillåter den.
 
 ## 9. Visningsstädning (2026-10-18)
 

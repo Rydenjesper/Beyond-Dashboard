@@ -2,7 +2,7 @@
 /* Beyond Dashboard MCP server: stdio, newline-delimited JSON-RPC 2.0, no dependencies.
    Add to Claude Code:  claude mcp add beyond -- node /path/to/Beyond-Dashboard/mcp/server.js
    Tools build a board and answer with a share link; nothing on the user's device is touched until they open it. */
-const tools = require("./tools");
+const tools = require("./tools"), live = require("./live");
 
 const widgetSpec = {
   type: "object",
@@ -35,6 +35,52 @@ const TOOLS = [
     }, required: ["widgets"] } },
 ];
 
+/* ── Live link: edit the boards in an open dashboard tab ── */
+const boardRef = { type: "string", description: "Board id or title; leave out for the board the user is looking at." };
+async function liveAdd({ board, widgets }) {
+  const warnings = [], { widgets: ws, summary } = await tools.specsToWidgets(widgets, warnings);
+  return { ...(await live.send("add", { board, widgets: ws })), added: summary, warnings };
+}
+async function liveUpdate({ board, widget, params, title, display, w, h, x, y }) {
+  const state = await live.send("state"), b = state.boards.find(x => board ? x.id === board || x.title.toLowerCase() === String(board).toLowerCase() : x.active);
+  const target = b?.widgets.find(x => x.id === widget);
+  if (!target) throw new Error(`No widget “${widget}” on ${b ? `“${b.title}”` : "that board"}. Use dashboard_state for ids.`);
+  const warnings = [], changes = { title, display, w, h, x, y };
+  if (params) {
+    if (!target.module) throw new Error("Only module widgets have params; for others change title, display or size.");
+    changes.params = await tools.resolveParams(tools.MOD[target.module], params, warnings, target.name);
+  }
+  return { ...(await live.send("update", { board: b.id, widget, changes })), warnings };
+}
+const LIVE_TOOLS = [
+  { name: "connect_dashboard", run: () => live.connect().then(r => ({ ...r, how: r.connected ? "Already connected; a new code was made in case the user wants to reconnect." : `Ask the user to click the Claude button at the top of their dashboard and enter ${r.code}. Then call dashboard_state.` })),
+    description: "Start a live link to the user's open Beyond Dashboard so you can see and edit their boards. Gives a one-time code for the user to enter in the dashboard (Claude button). Only works while this session runs.",
+    inputSchema: { type: "object", properties: {} } },
+  { name: "dashboard_state", run: () => live.send("state"),
+    description: "List the user's boards and widgets (ids, modules, params, sizes, positions) in the connected dashboard. Personal content like to-do items and notes is never included.",
+    inputSchema: { type: "object", properties: {} } },
+  { name: "add_widgets", run: liveAdd,
+    description: "Add widgets to a board in the connected dashboard. Same widget format as build_board. The user sees them appear and can undo.",
+    inputSchema: { type: "object", properties: { board: boardRef, widgets: { type: "array", items: widgetSpec, minItems: 1, maxItems: 40 } }, required: ["widgets"] } },
+  { name: "update_widget", run: liveUpdate,
+    description: "Change one widget: its params (module widgets), title, display, size (w 1–6, h 1–4) or position (x 0–5, y). Get widget ids from dashboard_state.",
+    inputSchema: { type: "object", properties: { board: boardRef, widget: { type: "string" }, params: { type: "object" }, title: { type: "string" }, display: { type: "string" },
+      w: { type: "integer", minimum: 1, maximum: 6 }, h: { type: "integer", minimum: 1, maximum: 4 }, x: { type: "integer", minimum: 0, maximum: 5 }, y: { type: "integer", minimum: 0 } }, required: ["widget"] } },
+  { name: "remove_widgets", run: args => live.send("remove", args),
+    description: "Remove widgets from a board in the connected dashboard (the user can undo).",
+    inputSchema: { type: "object", properties: { board: boardRef, widgets: { type: "array", items: { type: "string" }, minItems: 1 } }, required: ["widgets"] } },
+  { name: "create_board", run: async ({ title, widgets }) => { const warnings = [], ws = widgets?.length ? (await tools.specsToWidgets(widgets, warnings)).widgets : []; return { ...(await live.send("create", { title, widgets: ws })), warnings }; },
+    description: "Create a new board in the connected dashboard, optionally with widgets, and show it.",
+    inputSchema: { type: "object", properties: { title: { type: "string" }, widgets: { type: "array", items: widgetSpec, maxItems: 40 } }, required: ["title"] } },
+  { name: "rename_board", run: args => live.send("rename", args),
+    description: "Rename a board in the connected dashboard.",
+    inputSchema: { type: "object", properties: { board: boardRef, title: { type: "string" } }, required: ["title"] } },
+  { name: "show_board", run: args => live.send("show", args),
+    description: "Switch the connected dashboard to a board.",
+    inputSchema: { type: "object", properties: { board: boardRef }, required: ["board"] } },
+];
+TOOLS.push(...LIVE_TOOLS);
+
 const send = msg => process.stdout.write(JSON.stringify(msg) + "\n");
 const reply = (id, result) => send({ jsonrpc: "2.0", id, result });
 const fail = (id, code, message) => send({ jsonrpc: "2.0", id, error: { code, message } });
@@ -46,7 +92,7 @@ async function handle(msg) {
     case "initialize":
       return reply(id, { protocolVersion: params?.protocolVersion || "2025-06-18", capabilities: { tools: {} },
         serverInfo: { name: "beyond-dashboard", version: "1.0.0" },
-        instructions: "Build Beyond Dashboard boards from the catalog. Use search_catalog and describe_module to pick widgets, preview_widget to check values, then build_board and give the user the link." });
+        instructions: "Build Beyond Dashboard boards from the catalog. Use search_catalog and describe_module to pick widgets and preview_widget to check values. To make a new board, build_board gives a share link. To see or edit the user's existing boards, call connect_dashboard, have the user enter the code, then use dashboard_state, add_widgets, update_widget, remove_widgets, create_board, rename_board and show_board." });
     case "ping": return reply(id, {});
     case "tools/list": return reply(id, { tools: TOOLS.map(({ run, ...t }) => t) });
     case "tools/call": {

@@ -59,3 +59,16 @@ const PICKERS = {
     return (d[1] || []).map(t => ({ value: t, label: t }));
   },
 };
+
+/* Place search. Open-Meteo only matches names in the language you ask in ("Göteborg" is "Gothenburg" in English),
+   so search in English and in the user's own language, merge, and put real towns first, the biggest on top. */
+async function geoSearch(q, langs) {
+  const own = (typeof navigator !== "undefined" && navigator.language || "").slice(0, 2).toLowerCase();
+  langs ||= [...new Set(["en", /^[a-z]{2}$/.test(own) ? own : "sv"])];
+  const lists = await Promise.all(langs.map(l => globalThis.fetchData({ url: `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(String(q).trim())}&count=8&language=${l}` }).then(d => d?.results || [], () => [])));
+  const seen = new Map();
+  lists.flat().forEach(r => { if (!seen.has(r.id)) seen.set(r.id, r); });
+  const town = r => /^PPL/.test(r.feature_code || "");
+  return [...seen.values()].sort((a, b) => town(b) - town(a) || (b.population || 0) - (a.population || 0))
+    .map(r => ({ name: r.name, lat: +(+r.latitude).toFixed(4), lon: +(+r.longitude).toFixed(4), country_code: r.country_code, region: [r.admin1, r.country].filter(Boolean).join(", ") }));
+}

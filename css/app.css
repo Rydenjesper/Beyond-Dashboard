@@ -420,6 +420,9 @@ dialog[open] { display: flex; flex-direction: column; }
 .preview b { font: 500 11px var(--f-mono); color: var(--muted); letter-spacing: .06em; text-transform: uppercase; margin-right: 8px; }
 
 /* Share */
+#openLive.live-on { border-color: var(--ok); color: var(--ok); }
+#openLive.live-on svg { fill: currentColor; }
+body.kiosk #openLive { display: none; }
 .trust-list { margin: 0 0 6px; padding-left: 18px; font: 400 13px/1.7 var(--f-mono); word-break: break-all; }
 #edForm:not(.combining) .only-combine, #edForm.combining .no-combine { display: none !important; }
 .src-chips { margin-bottom: 8px; }
