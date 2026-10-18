@@ -89,6 +89,24 @@ Rules for the bank:
 
 All fields are documented at the top of `blueprints.js`.
 
+## Use it from Claude (MCP)
+
+`mcp/server.js` is a small MCP server (no dependencies) that lets Claude build boards from a chat: "make me a board for Göteborg with today's electricity price, the forecast and the next tram". Claude picks widgets from the catalog, can check their live values, and answers with a share link. Open it and choose **Add as new board**; nothing on your device changes before that, and API keys never pass through it.
+
+Claude Code:
+
+```sh
+claude mcp add beyond -- node /path/to/Beyond-Dashboard/mcp/server.js
+```
+
+Claude Desktop (`claude_desktop_config.json`):
+
+```json
+{ "mcpServers": { "beyond": { "command": "node", "args": ["/path/to/Beyond-Dashboard/mcp/server.js"] } } }
+```
+
+Tools: `search_catalog`, `describe_module`, `preview_widget` (fetches the real value and warns if the API blocks browsers) and `build_board`. Places and SL stops can be given by name. The server runs the app's own engine (`js/engine.js`, `blueprints.js`), so a board from Claude is validated exactly like one from a share link.
+
 ## RSS feeds and the proxy
 
 The News feed module reads RSS and Atom. Feeds that allow browser requests (Ekot from Sveriges Radio, the New York Times) work right away. Most others (SVT, GP, BBC, Hacker News, The Verge) block browsers with CORS, and the widget says so.
@@ -119,7 +137,7 @@ Drag-and-drop is powered by [gridstack.js](https://gridstackjs.com) (MIT), vendo
 ## Roadmap
 
 - [ ] Community layout gallery
-- [ ] MCP server: let Claude add and arrange widgets from chat
+- [ ] Live link between Claude and an open dashboard (edit existing boards, not just new ones)
 
 ## License
 

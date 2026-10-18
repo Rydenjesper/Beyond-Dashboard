@@ -216,6 +216,17 @@ Inget byggsteg, inga testramverk som kräver kompilering. Kör med Node 20+ (`no
 
 ---
 
+## 8. MCP-server (Claude bygger boards via delningslänk)
+
+Boards ligger i webbläsaren, så servern skriver aldrig direkt. Den bygger en board med appens egen motor och svarar med en `#d=`-länk. Ingen backend, inga beroenden.
+
+- [x] `mcp/tools.js`: `search_catalog`, `describe_module`, `preview_widget` (riktiga värden + CORS-varning), `build_board` (validerar via `sanitizeParams`/`sanitizeCustom`/`hydrate`, platser och SL-hållplatser via namn, aldrig nycklar).
+- [x] `mcp/server.js`: MCP över stdio (JSON-RPC 2.0), skrivet för hand för att slippa `node_modules` i valvet.
+- [x] `tests/mcp.test.js`: verktygen med mockad fetch, plus protokollet mot en riktig serverprocess.
+- [x] README: "Use it from Claude" med Claude Code och Claude Desktop.
+- [x] Verifierat: `claude mcp list` → Connected. Länken från `build_board` öppnad i Chrome → "Add as new board" → alla widgets laddar.
+- [ ] Senare: en live-koppling (WebSocket på localhost med parning) så att Claude kan ändra befintliga boards.
+
 ## Milstolpar
 
 Gör en milstolpe i taget. Släpp den (bumpa versionen, pusha, testa live på GitHub Pages) innan nästa påbörjas.

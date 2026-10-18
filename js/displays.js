@@ -74,7 +74,7 @@ const ticks = c => c.format === "countdown" || /\|countdown|\[now\]/.test(`${c.p
    shared x axis (never two y scales in one panel). mark: "min" | "max" labels that point of the first series. */
 const CHART_MAX = 400;
 function niceTicks(lo, hi, n = 4) {
-  if (lo === hi) { lo -= 1; hi += 1; }
+  if (lo === hi) { if (lo === 0) hi = 1; else { const d = Math.abs(lo) * .1; lo -= d; hi += d; } }   // a flat line: no rain must not show negative rain
   const raw = (hi - lo) / n, mag = 10 ** Math.floor(Math.log10(raw)), step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => s >= raw);
   const a = Math.floor(lo / step) * step, b = Math.ceil(hi / step) * step, out = [];
   for (let v = a; v <= b + step / 2; v += step) out.push(+v.toFixed(10));

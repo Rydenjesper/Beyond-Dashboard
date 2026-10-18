@@ -46,3 +46,9 @@ test("charts sort time series that arrive newest first", () => {
   const tip = JSON.parse(DISPLAYS.chart({ xField: "t", yFields: "v", xFormat: "date" }, pts).match(/data-tip="([^"]*)"/)[1].replace(/&quot;/g, '"'));
   assert.deepEqual(tip.s[0].v, ["1", "2", "3"]);
 });
+
+test("a series of zeros gets a 0–1 axis, never negative", () => {
+  const html = DISPLAYS.chart({ xField: "t", yFields: [{ y: "v", kind: "bar", unit: "mm" }] }, [0, 1, 2].map(i => ({ t: `2026-10-1${i}`, v: 0 })));
+  const ticks = [...html.matchAll(/class="ch-y">(.*?)<\/div>/g)][0][1].match(/>(-?[\d.]+)</g).map(s => +s.slice(1, -1));
+  assert.ok(Math.min(...ticks) >= 0, `ticks ${ticks}`);
+});
