@@ -1,7 +1,7 @@
 {
- "checked": "2026-10-18T08:05:37.531Z",
+ "checked": "2026-10-19T08:58:48.543Z",
  "urls": 247,
- "failing": 3,
+ "failing": 2,
  "results": {
   "elpris": {
    "ok": true,
@@ -20,7 +20,16 @@
    "of": 7
   },
   "ocean": {
-   "ok": true,
+   "ok": false,
+   "failed": [
+    {
+     "url": "https://marine-api.open-meteo.com/v1/marine?latitude=-48.88&longitude=-123.39&current=swell_wave_height",
+     "status": 0,
+     "cors": false,
+     "ok": false,
+     "error": "fetch failed"
+    }
+   ],
    "of": 4
   },
   "sun": {
@@ -44,7 +53,16 @@
    "of": 14
   },
   "forecast": {
-   "ok": true,
+   "ok": false,
+   "failed": [
+    {
+     "url": "https://api.open-meteo.com/v1/forecast?latitude=59.33&longitude=18.07&hourly=temperature_2m,precipitation&forecast_hours=24&timezone=auto",
+     "status": 0,
+     "cors": false,
+     "ok": false,
+     "error": "fetch failed"
+    }
+   ],
    "of": 4
   },
   "coin_chart": {
@@ -88,16 +106,7 @@
    "of": 3
   },
   "aurora": {
-   "ok": false,
-   "failed": [
-    {
-     "url": "https://api.open-meteo.com/v1/forecast?latitude=69.65&longitude=18.96&current=cloud_cover,is_day",
-     "status": 0,
-     "cors": false,
-     "ok": false,
-     "error": "fetch failed"
-    }
-   ],
+   "ok": true,
    "of": 2
   },
   "iss_far": {
@@ -105,16 +114,7 @@
    "of": 1
   },
   "vs_pole": {
-   "ok": false,
-   "failed": [
-    {
-     "url": "https://api.open-meteo.com/v1/forecast?latitude=-89.99&longitude=0&current=temperature_2m",
-     "status": 0,
-     "cors": false,
-     "ok": false,
-     "error": "fetch failed"
-    }
-   ],
+   "ok": true,
    "of": 2
   },
   "el_cheap": {
@@ -126,16 +126,7 @@
    "of": 4
   },
   "umbrella": {
-   "ok": false,
-   "failed": [
-    {
-     "url": "https://api.open-meteo.com/v1/forecast?latitude=59.33&longitude=18.07&minutely_15=precipitation&forecast_minutely_15=4",
-     "status": 0,
-     "cors": false,
-     "ok": false,
-     "error": "fetch failed"
-    }
-   ],
+   "ok": true,
    "of": 2
   },
   "brief": {
