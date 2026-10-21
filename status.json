@@ -1,5 +1,5 @@
 {
- "checked": "2026-10-20T08:36:57.188Z",
+ "checked": "2026-10-21T08:38:42.124Z",
  "urls": 247,
  "failing": 2,
  "results": {
@@ -221,15 +221,7 @@
    "of": 1
   },
   "bp_warframe": {
-   "ok": false,
-   "failed": [
-    {
-     "url": "https://api.warframestat.us/pc/fissures",
-     "status": 404,
-     "cors": true,
-     "ok": false
-    }
-   ],
+   "ok": true,
    "of": 1
   },
   "bp_mastodon_trends": {
@@ -365,7 +357,15 @@
    "of": 1
   },
   "bp_tv_se": {
-   "ok": true,
+   "ok": false,
+   "failed": [
+    {
+     "url": "https://api.tvmaze.com/schedule?country=SE",
+     "status": 502,
+     "cors": false,
+     "ok": false
+    }
+   ],
    "of": 1
   },
   "bp_bundesliga": {
