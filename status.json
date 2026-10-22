@@ -1,7 +1,7 @@
 {
- "checked": "2026-10-21T08:38:42.124Z",
+ "checked": "2026-10-22T08:40:26.642Z",
  "urls": 247,
- "failing": 2,
+ "failing": 0,
  "results": {
   "elpris": {
    "ok": true,
@@ -88,16 +88,7 @@
    "of": 3
   },
   "aurora": {
-   "ok": false,
-   "failed": [
-    {
-     "url": "https://api.open-meteo.com/v1/forecast?latitude=69.65&longitude=18.96&current=cloud_cover,is_day",
-     "status": 0,
-     "cors": false,
-     "ok": false,
-     "error": "fetch failed"
-    }
-   ],
+   "ok": true,
    "of": 2
   },
   "iss_far": {
@@ -357,15 +348,7 @@
    "of": 1
   },
   "bp_tv_se": {
-   "ok": false,
-   "failed": [
-    {
-     "url": "https://api.tvmaze.com/schedule?country=SE",
-     "status": 502,
-     "cors": false,
-     "ok": false
-    }
-   ],
+   "ok": true,
    "of": 1
   },
   "bp_bundesliga": {
