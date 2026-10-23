@@ -1,7 +1,7 @@
 {
- "checked": "2026-10-22T08:40:26.642Z",
+ "checked": "2026-10-23T08:36:37.807Z",
  "urls": 247,
- "failing": 0,
+ "failing": 2,
  "results": {
   "elpris": {
    "ok": true,
@@ -124,7 +124,15 @@
    "of": 1
   },
   "github": {
-   "ok": true,
+   "ok": false,
+   "failed": [
+    {
+     "url": "https://api.github.com/repos/anthropics/claude-code",
+     "status": 403,
+     "cors": true,
+     "ok": false
+    }
+   ],
    "of": 1
   },
   "npm": {
@@ -376,7 +384,15 @@
    "of": 1
   },
   "bp_gh_firehose": {
-   "ok": true,
+   "ok": false,
+   "failed": [
+    {
+     "url": "https://api.github.com/events?per_page=20",
+     "status": 403,
+     "cors": true,
+     "ok": false
+    }
+   ],
    "of": 1
   },
   "bp_devto": {
