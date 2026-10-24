@@ -1,5 +1,5 @@
 {
- "checked": "2026-10-23T08:36:37.807Z",
+ "checked": "2026-10-24T08:11:26.428Z",
  "urls": 247,
  "failing": 2,
  "results": {
@@ -96,7 +96,16 @@
    "of": 1
   },
   "vs_pole": {
-   "ok": true,
+   "ok": false,
+   "failed": [
+    {
+     "url": "https://api.open-meteo.com/v1/forecast?latitude=-89.99&longitude=0&current=temperature_2m",
+     "status": 0,
+     "cors": false,
+     "ok": false,
+     "error": "fetch failed"
+    }
+   ],
    "of": 2
   },
   "el_cheap": {
@@ -124,15 +133,7 @@
    "of": 1
   },
   "github": {
-   "ok": false,
-   "failed": [
-    {
-     "url": "https://api.github.com/repos/anthropics/claude-code",
-     "status": 403,
-     "cors": true,
-     "ok": false
-    }
-   ],
+   "ok": true,
    "of": 1
   },
   "npm": {
@@ -152,7 +153,15 @@
    "of": 7
   },
   "chess": {
-   "ok": true,
+   "ok": false,
+   "failed": [
+    {
+     "url": "https://api.chess.com/pub/player/magnuscarlsen/stats",
+     "status": 404,
+     "cors": true,
+     "ok": false
+    }
+   ],
    "of": 2
   },
   "f1": {
@@ -384,15 +393,7 @@
    "of": 1
   },
   "bp_gh_firehose": {
-   "ok": false,
-   "failed": [
-    {
-     "url": "https://api.github.com/events?per_page=20",
-     "status": 403,
-     "cors": true,
-     "ok": false
-    }
-   ],
+   "ok": true,
    "of": 1
   },
   "bp_devto": {
