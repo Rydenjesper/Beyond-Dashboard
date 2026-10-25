@@ -1,7 +1,7 @@
 {
- "checked": "2026-10-24T08:11:26.428Z",
+ "checked": "2026-10-25T08:29:15.377Z",
  "urls": 247,
- "failing": 2,
+ "failing": 1,
  "results": {
   "elpris": {
    "ok": true,
@@ -88,7 +88,16 @@
    "of": 3
   },
   "aurora": {
-   "ok": true,
+   "ok": false,
+   "failed": [
+    {
+     "url": "https://api.open-meteo.com/v1/forecast?latitude=69.65&longitude=18.96&current=cloud_cover,is_day",
+     "status": 0,
+     "cors": false,
+     "ok": false,
+     "error": "fetch failed"
+    }
+   ],
    "of": 2
   },
   "iss_far": {
@@ -96,16 +105,7 @@
    "of": 1
   },
   "vs_pole": {
-   "ok": false,
-   "failed": [
-    {
-     "url": "https://api.open-meteo.com/v1/forecast?latitude=-89.99&longitude=0&current=temperature_2m",
-     "status": 0,
-     "cors": false,
-     "ok": false,
-     "error": "fetch failed"
-    }
-   ],
+   "ok": true,
    "of": 2
   },
   "el_cheap": {
@@ -153,15 +153,7 @@
    "of": 7
   },
   "chess": {
-   "ok": false,
-   "failed": [
-    {
-     "url": "https://api.chess.com/pub/player/magnuscarlsen/stats",
-     "status": 404,
-     "cors": true,
-     "ok": false
-    }
-   ],
+   "ok": true,
    "of": 2
   },
   "f1": {
