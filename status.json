@@ -1,7 +1,7 @@
 {
- "checked": "2026-10-25T08:29:15.377Z",
+ "checked": "2026-10-26T09:01:53.323Z",
  "urls": 247,
- "failing": 1,
+ "failing": 2,
  "results": {
   "elpris": {
    "ok": true,
@@ -88,16 +88,7 @@
    "of": 3
   },
   "aurora": {
-   "ok": false,
-   "failed": [
-    {
-     "url": "https://api.open-meteo.com/v1/forecast?latitude=69.65&longitude=18.96&current=cloud_cover,is_day",
-     "status": 0,
-     "cors": false,
-     "ok": false,
-     "error": "fetch failed"
-    }
-   ],
+   "ok": true,
    "of": 2
   },
   "iss_far": {
@@ -105,7 +96,16 @@
    "of": 1
   },
   "vs_pole": {
-   "ok": true,
+   "ok": false,
+   "failed": [
+    {
+     "url": "https://api.open-meteo.com/v1/forecast?latitude=-89.99&longitude=0&current=temperature_2m",
+     "status": 0,
+     "cors": false,
+     "ok": false,
+     "error": "fetch failed"
+    }
+   ],
    "of": 2
   },
   "el_cheap": {
@@ -149,7 +149,23 @@
    "of": 16
   },
   "launches": {
-   "ok": true,
+   "ok": false,
+   "failed": [
+    {
+     "url": "https://ll.thespacedevs.com/2.3.0/launches/upcoming/?limit=10&mode=list&hide_recent_previous=true&lsp__name=Blue%20Origin",
+     "status": 0,
+     "cors": false,
+     "ok": false,
+     "error": "timeout"
+    },
+    {
+     "url": "https://ll.thespacedevs.com/2.3.0/launches/upcoming/?limit=10&mode=list&hide_recent_previous=true&lsp__name=Arianespace",
+     "status": 0,
+     "cors": false,
+     "ok": false,
+     "error": "timeout"
+    }
+   ],
    "of": 7
   },
   "chess": {
