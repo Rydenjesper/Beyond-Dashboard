@@ -1,7 +1,7 @@
 {
- "checked": "2026-10-27T09:04:25.176Z",
+ "checked": "2026-10-28T09:44:14.886Z",
  "urls": 247,
- "failing": 0,
+ "failing": 2,
  "results": {
   "elpris": {
    "ok": true,
@@ -76,7 +76,27 @@
    "of": 12
   },
   "svk": {
-   "ok": true,
+   "ok": false,
+   "failed": [
+    {
+     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-10-28&biddingArea=SE",
+     "status": 403,
+     "cors": false,
+     "ok": false
+    },
+    {
+     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-10-28&biddingArea=SE1",
+     "status": 403,
+     "cors": false,
+     "ok": false
+    },
+    {
+     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-10-28&biddingArea=SE2",
+     "status": 403,
+     "cors": false,
+     "ok": false
+    }
+   ],
    "of": 5
   },
   "smhi_warn": {
@@ -88,7 +108,16 @@
    "of": 3
   },
   "aurora": {
-   "ok": true,
+   "ok": false,
+   "failed": [
+    {
+     "url": "https://api.open-meteo.com/v1/forecast?latitude=69.65&longitude=18.96&current=cloud_cover,is_day",
+     "status": 0,
+     "cors": false,
+     "ok": false,
+     "error": "fetch failed"
+    }
+   ],
    "of": 2
   },
   "iss_far": {
