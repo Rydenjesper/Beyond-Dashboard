@@ -1,7 +1,7 @@
 {
- "checked": "2026-11-01T10:31:30.347Z",
+ "checked": "2026-11-02T11:16:03.890Z",
  "urls": 247,
- "failing": 1,
+ "failing": 3,
  "results": {
   "elpris": {
    "ok": true,
@@ -79,19 +79,19 @@
    "ok": false,
    "failed": [
     {
-     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-01&biddingArea=SE",
+     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-02&biddingArea=SE",
      "status": 403,
      "cors": false,
      "ok": false
     },
     {
-     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-01&biddingArea=SE1",
+     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-02&biddingArea=SE1",
      "status": 200,
      "cors": false,
      "ok": false
     },
     {
-     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-01&biddingArea=SE2",
+     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-02&biddingArea=SE2",
      "status": 403,
      "cors": false,
      "ok": false
@@ -108,7 +108,16 @@
    "of": 3
   },
   "aurora": {
-   "ok": true,
+   "ok": false,
+   "failed": [
+    {
+     "url": "https://api.open-meteo.com/v1/forecast?latitude=69.65&longitude=18.96&current=cloud_cover,is_day",
+     "status": 0,
+     "cors": false,
+     "ok": false,
+     "error": "fetch failed"
+    }
+   ],
    "of": 2
   },
   "iss_far": {
@@ -116,7 +125,16 @@
    "of": 1
   },
   "vs_pole": {
-   "ok": true,
+   "ok": false,
+   "failed": [
+    {
+     "url": "https://api.open-meteo.com/v1/forecast?latitude=-89.99&longitude=0&current=temperature_2m",
+     "status": 0,
+     "cors": false,
+     "ok": false,
+     "error": "fetch failed"
+    }
+   ],
    "of": 2
   },
   "el_cheap": {
