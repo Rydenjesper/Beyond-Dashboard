@@ -1,5 +1,5 @@
 {
- "checked": "2026-11-02T11:16:03.890Z",
+ "checked": "2026-11-03T10:58:43.184Z",
  "urls": 247,
  "failing": 3,
  "results": {
@@ -12,7 +12,16 @@
    "of": 1
   },
   "weather": {
-   "ok": true,
+   "ok": false,
+   "failed": [
+    {
+     "url": "https://wttr.in/59.330,18.070?format=j1",
+     "status": 0,
+     "cors": false,
+     "ok": false,
+     "error": "fetch failed"
+    }
+   ],
    "of": 10
   },
   "air": {
@@ -68,7 +77,22 @@
    "of": 1
   },
   "ecb": {
-   "ok": true,
+   "ok": false,
+   "failed": [
+    {
+     "url": "https://data-api.ecb.europa.eu/service/data/FM/D.U2.EUR.4F.KR.DFR.LEV?lastNObservations=1&format=jsondata",
+     "status": 0,
+     "cors": false,
+     "ok": false,
+     "error": "timeout"
+    },
+    {
+     "url": "https://data-api.ecb.europa.eu/service/data/FM/D.U2.EUR.4F.KR.MRR_FR.LEV?lastNObservations=1&format=jsondata",
+     "status": 504,
+     "cors": false,
+     "ok": false
+    }
+   ],
    "of": 6
   },
   "eurostat": {
@@ -79,19 +103,19 @@
    "ok": false,
    "failed": [
     {
-     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-02&biddingArea=SE",
+     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-03&biddingArea=SE",
      "status": 403,
      "cors": false,
      "ok": false
     },
     {
-     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-02&biddingArea=SE1",
+     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-03&biddingArea=SE1",
      "status": 200,
      "cors": false,
      "ok": false
     },
     {
-     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-02&biddingArea=SE2",
+     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-03&biddingArea=SE2",
      "status": 403,
      "cors": false,
      "ok": false
@@ -108,16 +132,7 @@
    "of": 3
   },
   "aurora": {
-   "ok": false,
-   "failed": [
-    {
-     "url": "https://api.open-meteo.com/v1/forecast?latitude=69.65&longitude=18.96&current=cloud_cover,is_day",
-     "status": 0,
-     "cors": false,
-     "ok": false,
-     "error": "fetch failed"
-    }
-   ],
+   "ok": true,
    "of": 2
   },
   "iss_far": {
@@ -125,16 +140,7 @@
    "of": 1
   },
   "vs_pole": {
-   "ok": false,
-   "failed": [
-    {
-     "url": "https://api.open-meteo.com/v1/forecast?latitude=-89.99&longitude=0&current=temperature_2m",
-     "status": 0,
-     "cors": false,
-     "ok": false,
-     "error": "fetch failed"
-    }
-   ],
+   "ok": true,
    "of": 2
   },
   "el_cheap": {
