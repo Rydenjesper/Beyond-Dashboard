@@ -1,7 +1,7 @@
 {
- "checked": "2026-11-03T10:58:43.184Z",
+ "checked": "2026-11-04T10:59:27.854Z",
  "urls": 247,
- "failing": 3,
+ "failing": 1,
  "results": {
   "elpris": {
    "ok": true,
@@ -12,16 +12,7 @@
    "of": 1
   },
   "weather": {
-   "ok": false,
-   "failed": [
-    {
-     "url": "https://wttr.in/59.330,18.070?format=j1",
-     "status": 0,
-     "cors": false,
-     "ok": false,
-     "error": "fetch failed"
-    }
-   ],
+   "ok": true,
    "of": 10
   },
   "air": {
@@ -77,22 +68,7 @@
    "of": 1
   },
   "ecb": {
-   "ok": false,
-   "failed": [
-    {
-     "url": "https://data-api.ecb.europa.eu/service/data/FM/D.U2.EUR.4F.KR.DFR.LEV?lastNObservations=1&format=jsondata",
-     "status": 0,
-     "cors": false,
-     "ok": false,
-     "error": "timeout"
-    },
-    {
-     "url": "https://data-api.ecb.europa.eu/service/data/FM/D.U2.EUR.4F.KR.MRR_FR.LEV?lastNObservations=1&format=jsondata",
-     "status": 504,
-     "cors": false,
-     "ok": false
-    }
-   ],
+   "ok": true,
    "of": 6
   },
   "eurostat": {
@@ -103,20 +79,20 @@
    "ok": false,
    "failed": [
     {
-     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-03&biddingArea=SE",
+     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-04&biddingArea=SE",
      "status": 403,
      "cors": false,
      "ok": false
     },
     {
-     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-03&biddingArea=SE1",
+     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-04&biddingArea=SE1",
+     "status": 403,
+     "cors": false,
+     "ok": false
+    },
+    {
+     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-04&biddingArea=SE2",
      "status": 200,
-     "cors": false,
-     "ok": false
-    },
-    {
-     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-03&biddingArea=SE2",
-     "status": 403,
      "cors": false,
      "ok": false
     }
