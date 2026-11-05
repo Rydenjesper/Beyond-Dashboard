@@ -1,7 +1,7 @@
 {
- "checked": "2026-11-04T10:59:27.854Z",
+ "checked": "2026-11-05T11:01:38.641Z",
  "urls": 247,
- "failing": 1,
+ "failing": 3,
  "results": {
   "elpris": {
    "ok": true,
@@ -68,7 +68,16 @@
    "of": 1
   },
   "ecb": {
-   "ok": true,
+   "ok": false,
+   "failed": [
+    {
+     "url": "https://data-api.ecb.europa.eu/service/data/FM/D.U2.EUR.4F.KR.MLFR.LEV?startPeriod=2024-11-05&format=jsondata",
+     "status": 0,
+     "cors": false,
+     "ok": false,
+     "error": "timeout"
+    }
+   ],
    "of": 6
   },
   "eurostat": {
@@ -79,19 +88,19 @@
    "ok": false,
    "failed": [
     {
-     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-04&biddingArea=SE",
+     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-05&biddingArea=SE",
      "status": 403,
      "cors": false,
      "ok": false
     },
     {
-     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-04&biddingArea=SE1",
+     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-05&biddingArea=SE1",
      "status": 403,
      "cors": false,
      "ok": false
     },
     {
-     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-04&biddingArea=SE2",
+     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-05&biddingArea=SE2",
      "status": 200,
      "cors": false,
      "ok": false
@@ -108,7 +117,16 @@
    "of": 3
   },
   "aurora": {
-   "ok": true,
+   "ok": false,
+   "failed": [
+    {
+     "url": "https://api.open-meteo.com/v1/forecast?latitude=69.65&longitude=18.96&current=cloud_cover,is_day",
+     "status": 0,
+     "cors": false,
+     "ok": false,
+     "error": "fetch failed"
+    }
+   ],
    "of": 2
   },
   "iss_far": {
