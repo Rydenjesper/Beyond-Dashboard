@@ -1,7 +1,7 @@
 {
- "checked": "2026-11-07T10:16:29.710Z",
+ "checked": "2026-11-08T10:27:30.842Z",
  "urls": 247,
- "failing": 2,
+ "failing": 3,
  "results": {
   "elpris": {
    "ok": true,
@@ -79,20 +79,20 @@
    "ok": false,
    "failed": [
     {
-     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-07&biddingArea=SE",
+     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-08&biddingArea=SE",
      "status": 403,
      "cors": false,
      "ok": false
     },
     {
-     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-07&biddingArea=SE1",
+     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-08&biddingArea=SE1",
+     "status": 403,
+     "cors": false,
+     "ok": false
+    },
+    {
+     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-08&biddingArea=SE2",
      "status": 200,
-     "cors": false,
-     "ok": false
-    },
-    {
-     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-07&biddingArea=SE2",
-     "status": 403,
      "cors": false,
      "ok": false
     }
@@ -108,7 +108,16 @@
    "of": 3
   },
   "aurora": {
-   "ok": true,
+   "ok": false,
+   "failed": [
+    {
+     "url": "https://api.open-meteo.com/v1/forecast?latitude=69.65&longitude=18.96&current=cloud_cover,is_day",
+     "status": 0,
+     "cors": false,
+     "ok": false,
+     "error": "fetch failed"
+    }
+   ],
    "of": 2
   },
   "iss_far": {
@@ -132,16 +141,7 @@
    "of": 2
   },
   "brief": {
-   "ok": false,
-   "failed": [
-    {
-     "url": "https://api.open-meteo.com/v1/forecast?latitude=59.33&longitude=18.07&current=temperature_2m,weather_code",
-     "status": 0,
-     "cors": false,
-     "ok": false,
-     "error": "fetch failed"
-    }
-   ],
+   "ok": true,
    "of": 7
   },
   "sl": {
@@ -325,7 +325,15 @@
    "of": 1
   },
   "bp_prog_joke": {
-   "ok": true,
+   "ok": false,
+   "failed": [
+    {
+     "url": "https://official-joke-api.appspot.com/jokes/programming/random",
+     "status": 503,
+     "cors": false,
+     "ok": false
+    }
+   ],
    "of": 1
   },
   "bp_random_person": {
