@@ -1,5 +1,5 @@
 {
- "checked": "2026-11-09T11:40:32.286Z",
+ "checked": "2026-11-10T11:17:47.653Z",
  "urls": 247,
  "failing": 3,
  "results": {
@@ -76,20 +76,6 @@
      "cors": false,
      "ok": false,
      "error": "timeout"
-    },
-    {
-     "url": "https://data-api.ecb.europa.eu/service/data/FM/D.U2.EUR.4F.KR.MRR_FR.LEV?startPeriod=2024-11-09&format=jsondata",
-     "status": 0,
-     "cors": false,
-     "ok": false,
-     "error": "timeout"
-    },
-    {
-     "url": "https://data-api.ecb.europa.eu/service/data/FM/D.U2.EUR.4F.KR.MLFR.LEV?lastNObservations=1&format=jsondata",
-     "status": 0,
-     "cors": false,
-     "ok": false,
-     "error": "timeout"
     }
    ],
    "of": 6
@@ -102,20 +88,20 @@
    "ok": false,
    "failed": [
     {
-     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-09&biddingArea=SE",
+     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-10&biddingArea=SE",
      "status": 403,
      "cors": false,
      "ok": false
     },
     {
-     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-09&biddingArea=SE1",
+     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-10&biddingArea=SE1",
      "status": 403,
      "cors": false,
      "ok": false
     },
     {
-     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-09&biddingArea=SE2",
-     "status": 403,
+     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-10&biddingArea=SE2",
+     "status": 200,
      "cors": false,
      "ok": false
     }
