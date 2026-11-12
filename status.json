@@ -1,7 +1,7 @@
 {
- "checked": "2026-11-11T11:03:36.298Z",
+ "checked": "2026-11-12T11:20:27.589Z",
  "urls": 247,
- "failing": 3,
+ "failing": 4,
  "results": {
   "elpris": {
    "ok": true,
@@ -68,7 +68,16 @@
    "of": 1
   },
   "ecb": {
-   "ok": true,
+   "ok": false,
+   "failed": [
+    {
+     "url": "https://data-api.ecb.europa.eu/service/data/FM/D.U2.EUR.4F.KR.MRR_FR.LEV?lastNObservations=1&format=jsondata",
+     "status": 0,
+     "cors": false,
+     "ok": false,
+     "error": "timeout"
+    }
+   ],
    "of": 6
   },
   "eurostat": {
@@ -79,19 +88,19 @@
    "ok": false,
    "failed": [
     {
-     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-11&biddingArea=SE",
+     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-12&biddingArea=SE",
      "status": 403,
      "cors": false,
      "ok": false
     },
     {
-     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-11&biddingArea=SE1",
+     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-12&biddingArea=SE1",
      "status": 200,
      "cors": false,
      "ok": false
     },
     {
-     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-11&biddingArea=SE2",
+     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-12&biddingArea=SE2",
      "status": 200,
      "cors": false,
      "ok": false
@@ -108,16 +117,7 @@
    "of": 3
   },
   "aurora": {
-   "ok": false,
-   "failed": [
-    {
-     "url": "https://api.open-meteo.com/v1/forecast?latitude=69.65&longitude=18.96&current=cloud_cover,is_day",
-     "status": 0,
-     "cors": false,
-     "ok": false,
-     "error": "fetch failed"
-    }
-   ],
+   "ok": true,
    "of": 2
   },
   "iss_far": {
@@ -269,7 +269,16 @@
    "of": 1
   },
   "bp_picsum": {
-   "ok": true,
+   "ok": false,
+   "failed": [
+    {
+     "url": "https://picsum.photos/v2/list?page=97&limit=1",
+     "status": 0,
+     "cors": false,
+     "ok": false,
+     "error": "timeout"
+    }
+   ],
    "of": 1
   },
   "bp_btc_height": {
