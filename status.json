@@ -1,7 +1,7 @@
 {
- "checked": "2026-11-13T11:08:41.653Z",
+ "checked": "2026-11-14T10:31:59.358Z",
  "urls": 247,
- "failing": 8,
+ "failing": 3,
  "results": {
   "elpris": {
    "ok": true,
@@ -12,30 +12,7 @@
    "of": 1
   },
   "weather": {
-   "ok": false,
-   "failed": [
-    {
-     "url": "https://api.open-meteo.com/v1/forecast?latitude=59.33&longitude=18.07&current=temperature_2m",
-     "status": 0,
-     "cors": false,
-     "ok": false,
-     "error": "fetch failed"
-    },
-    {
-     "url": "https://api.open-meteo.com/v1/forecast?latitude=59.33&longitude=18.07&current=apparent_temperature",
-     "status": 0,
-     "cors": false,
-     "ok": false,
-     "error": "fetch failed"
-    },
-    {
-     "url": "https://api.open-meteo.com/v1/forecast?latitude=59.33&longitude=18.07&current=weather_code",
-     "status": 0,
-     "cors": false,
-     "ok": false,
-     "error": "fetch failed"
-    }
-   ],
+   "ok": true,
    "of": 10
   },
   "air": {
@@ -67,30 +44,7 @@
    "of": 14
   },
   "forecast": {
-   "ok": false,
-   "failed": [
-    {
-     "url": "https://api.open-meteo.com/v1/forecast?latitude=59.33&longitude=18.07&hourly=temperature_2m,precipitation&forecast_hours=24&timezone=auto",
-     "status": 0,
-     "cors": false,
-     "ok": false,
-     "error": "fetch failed"
-    },
-    {
-     "url": "https://api.open-meteo.com/v1/forecast?latitude=59.33&longitude=18.07&hourly=temperature_2m,precipitation&forecast_hours=48&timezone=auto",
-     "status": 0,
-     "cors": false,
-     "ok": false,
-     "error": "fetch failed"
-    },
-    {
-     "url": "https://api.open-meteo.com/v1/forecast?latitude=59.33&longitude=18.07&hourly=wind_speed_10m,wind_gusts_10m&forecast_hours=24&timezone=auto",
-     "status": 0,
-     "cors": false,
-     "ok": false,
-     "error": "fetch failed"
-    }
-   ],
+   "ok": true,
    "of": 4
   },
   "coin_chart": {
@@ -125,20 +79,20 @@
    "ok": false,
    "failed": [
     {
-     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-13&biddingArea=SE",
+     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-14&biddingArea=SE",
      "status": 403,
      "cors": false,
      "ok": false
     },
     {
-     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-13&biddingArea=SE1",
-     "status": 403,
+     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-14&biddingArea=SE1",
+     "status": 200,
      "cors": false,
      "ok": false
     },
     {
-     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-13&biddingArea=SE2",
-     "status": 403,
+     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-14&biddingArea=SE2",
+     "status": 200,
      "cors": false,
      "ok": false
     }
@@ -154,16 +108,7 @@
    "of": 3
   },
   "aurora": {
-   "ok": false,
-   "failed": [
-    {
-     "url": "https://api.open-meteo.com/v1/forecast?latitude=69.65&longitude=18.96&current=cloud_cover,is_day",
-     "status": 0,
-     "cors": false,
-     "ok": false,
-     "error": "fetch failed"
-    }
-   ],
+   "ok": true,
    "of": 2
   },
   "iss_far": {
@@ -171,23 +116,7 @@
    "of": 1
   },
   "vs_pole": {
-   "ok": false,
-   "failed": [
-    {
-     "url": "https://api.open-meteo.com/v1/forecast?latitude=59.33&longitude=18.07&current=temperature_2m",
-     "status": 0,
-     "cors": false,
-     "ok": false,
-     "error": "fetch failed"
-    },
-    {
-     "url": "https://api.open-meteo.com/v1/forecast?latitude=-89.99&longitude=0&current=temperature_2m",
-     "status": 0,
-     "cors": false,
-     "ok": false,
-     "error": "fetch failed"
-    }
-   ],
+   "ok": true,
    "of": 2
   },
   "el_cheap": {
@@ -199,16 +128,7 @@
    "of": 4
   },
   "umbrella": {
-   "ok": false,
-   "failed": [
-    {
-     "url": "https://api.open-meteo.com/v1/forecast?latitude=59.33&longitude=18.07&minutely_15=precipitation&forecast_minutely_15=4",
-     "status": 0,
-     "cors": false,
-     "ok": false,
-     "error": "fetch failed"
-    }
-   ],
+   "ok": true,
    "of": 2
   },
   "brief": {
@@ -343,7 +263,7 @@
    "ok": false,
    "failed": [
     {
-     "url": "https://picsum.photos/v2/list?page=70&limit=1",
+     "url": "https://picsum.photos/v2/list?page=48&limit=1",
      "status": 0,
      "cors": false,
      "ok": false,
