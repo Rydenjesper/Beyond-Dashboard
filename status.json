@@ -1,7 +1,7 @@
 {
- "checked": "2026-11-14T10:31:59.358Z",
+ "checked": "2026-11-15T11:00:03.696Z",
  "urls": 247,
- "failing": 3,
+ "failing": 5,
  "results": {
   "elpris": {
    "ok": true,
@@ -79,20 +79,20 @@
    "ok": false,
    "failed": [
     {
-     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-14&biddingArea=SE",
+     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-15&biddingArea=SE",
      "status": 403,
      "cors": false,
      "ok": false
     },
     {
-     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-14&biddingArea=SE1",
+     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-15&biddingArea=SE1",
      "status": 200,
      "cors": false,
      "ok": false
     },
     {
-     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-14&biddingArea=SE2",
-     "status": 200,
+     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-15&biddingArea=SE2",
+     "status": 403,
      "cors": false,
      "ok": false
     }
@@ -144,7 +144,15 @@
    "of": 1
   },
   "github": {
-   "ok": true,
+   "ok": false,
+   "failed": [
+    {
+     "url": "https://api.github.com/repos/anthropics/claude-code",
+     "status": 403,
+     "cors": true,
+     "ok": false
+    }
+   ],
    "of": 1
   },
   "npm": {
@@ -263,7 +271,7 @@
    "ok": false,
    "failed": [
     {
-     "url": "https://picsum.photos/v2/list?page=48&limit=1",
+     "url": "https://picsum.photos/v2/list?page=62&limit=1",
      "status": 0,
      "cors": false,
      "ok": false,
@@ -413,7 +421,15 @@
    "of": 1
   },
   "bp_gh_firehose": {
-   "ok": true,
+   "ok": false,
+   "failed": [
+    {
+     "url": "https://api.github.com/events?per_page=20",
+     "status": 403,
+     "cors": true,
+     "ok": false
+    }
+   ],
    "of": 1
   },
   "bp_devto": {
