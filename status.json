@@ -1,7 +1,7 @@
 {
- "checked": "2026-11-15T11:00:03.696Z",
+ "checked": "2026-11-16T11:27:24.753Z",
  "urls": 247,
- "failing": 5,
+ "failing": 4,
  "results": {
   "elpris": {
    "ok": true,
@@ -79,20 +79,20 @@
    "ok": false,
    "failed": [
     {
-     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-15&biddingArea=SE",
+     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-16&biddingArea=SE",
      "status": 403,
      "cors": false,
      "ok": false
     },
     {
-     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-15&biddingArea=SE1",
+     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-16&biddingArea=SE1",
+     "status": 403,
+     "cors": false,
+     "ok": false
+    },
+    {
+     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-16&biddingArea=SE2",
      "status": 200,
-     "cors": false,
-     "ok": false
-    },
-    {
-     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-15&biddingArea=SE2",
-     "status": 403,
      "cors": false,
      "ok": false
     }
@@ -268,16 +268,7 @@
    "of": 1
   },
   "bp_picsum": {
-   "ok": false,
-   "failed": [
-    {
-     "url": "https://picsum.photos/v2/list?page=62&limit=1",
-     "status": 0,
-     "cors": false,
-     "ok": false,
-     "error": "timeout"
-    }
-   ],
+   "ok": true,
    "of": 1
   },
   "bp_btc_height": {
