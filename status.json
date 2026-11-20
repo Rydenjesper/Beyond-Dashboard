@@ -1,7 +1,7 @@
 {
- "checked": "2026-11-19T11:44:59.334Z",
+ "checked": "2026-11-20T11:45:49.945Z",
  "urls": 247,
- "failing": 2,
+ "failing": 3,
  "results": {
   "elpris": {
    "ok": true,
@@ -79,20 +79,20 @@
    "ok": false,
    "failed": [
     {
-     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-19&biddingArea=SE",
+     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-20&biddingArea=SE",
      "status": 403,
      "cors": false,
      "ok": false
     },
     {
-     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-19&biddingArea=SE1",
+     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-20&biddingArea=SE1",
      "status": 403,
      "cors": false,
      "ok": false
     },
     {
-     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-19&biddingArea=SE2",
-     "status": 200,
+     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-20&biddingArea=SE2",
+     "status": 403,
      "cors": false,
      "ok": false
     }
@@ -388,7 +388,16 @@
    "of": 1
   },
   "bp_trivia": {
-   "ok": true,
+   "ok": false,
+   "failed": [
+    {
+     "url": "https://opentdb.com/api.php?amount=1",
+     "status": 0,
+     "cors": false,
+     "ok": false,
+     "error": "fetch failed"
+    }
+   ],
    "of": 1
   },
   "bp_quote": {
