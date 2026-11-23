@@ -1,7 +1,7 @@
 {
- "checked": "2026-11-22T11:30:51.179Z",
+ "checked": "2026-11-23T12:53:08.063Z",
  "urls": 247,
- "failing": 3,
+ "failing": 2,
  "results": {
   "elpris": {
    "ok": true,
@@ -79,20 +79,20 @@
    "ok": false,
    "failed": [
     {
-     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-22&biddingArea=SE",
+     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-23&biddingArea=SE",
      "status": 403,
      "cors": false,
      "ok": false
     },
     {
-     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-22&biddingArea=SE1",
+     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-23&biddingArea=SE1",
+     "status": 403,
+     "cors": false,
+     "ok": false
+    },
+    {
+     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-23&biddingArea=SE2",
      "status": 200,
-     "cors": false,
-     "ok": false
-    },
-    {
-     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-22&biddingArea=SE2",
-     "status": 403,
      "cors": false,
      "ok": false
     }
@@ -232,15 +232,7 @@
    "of": 1
   },
   "bp_warframe": {
-   "ok": false,
-   "failed": [
-    {
-     "url": "https://api.warframestat.us/pc/fissures",
-     "status": 404,
-     "cors": true,
-     "ok": false
-    }
-   ],
+   "ok": true,
    "of": 1
   },
   "bp_mastodon_trends": {
