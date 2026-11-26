@@ -1,7 +1,7 @@
 {
- "checked": "2026-11-25T13:01:57.898Z",
+ "checked": "2026-11-26T12:42:44.718Z",
  "urls": 247,
- "failing": 4,
+ "failing": 3,
  "results": {
   "elpris": {
    "ok": true,
@@ -20,7 +20,16 @@
    "of": 7
   },
   "ocean": {
-   "ok": true,
+   "ok": false,
+   "failed": [
+    {
+     "url": "https://marine-api.open-meteo.com/v1/marine?latitude=-48.88&longitude=-123.39&current=wave_period",
+     "status": 0,
+     "cors": false,
+     "ok": false,
+     "error": "fetch failed"
+    }
+   ],
    "of": 4
   },
   "sun": {
@@ -79,20 +88,20 @@
    "ok": false,
    "failed": [
     {
-     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-25&biddingArea=SE",
+     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-26&biddingArea=SE",
      "status": 403,
      "cors": false,
      "ok": false
     },
     {
-     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-25&biddingArea=SE1",
+     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-26&biddingArea=SE1",
      "status": 200,
      "cors": false,
      "ok": false
     },
     {
-     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-25&biddingArea=SE2",
-     "status": 403,
+     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-26&biddingArea=SE2",
+     "status": 200,
      "cors": false,
      "ok": false
     }
@@ -160,16 +169,7 @@
    "of": 16
   },
   "launches": {
-   "ok": false,
-   "failed": [
-    {
-     "url": "https://ll.thespacedevs.com/2.3.0/launches/upcoming/?limit=10&mode=list&hide_recent_previous=true&lsp__name=China%20Aerospace%20Science%20and%20Technology%20Corporation",
-     "status": 0,
-     "cors": false,
-     "ok": false,
-     "error": "timeout"
-    }
-   ],
+   "ok": true,
    "of": 7
   },
   "chess": {
@@ -377,16 +377,7 @@
    "of": 1
   },
   "bp_potomac": {
-   "ok": false,
-   "failed": [
-    {
-     "url": "https://waterservices.usgs.gov/nwis/iv/?format=json&sites=01646500&parameterCd=00060",
-     "status": 0,
-     "cors": false,
-     "ok": false,
-     "error": "fetch failed"
-    }
-   ],
+   "ok": true,
    "of": 1
   },
   "bp_riksdagen": {
