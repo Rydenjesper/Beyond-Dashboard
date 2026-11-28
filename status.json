@@ -1,5 +1,5 @@
 {
- "checked": "2026-11-27T12:27:51.399Z",
+ "checked": "2026-11-28T11:52:09.499Z",
  "urls": 247,
  "failing": 2,
  "results": {
@@ -79,19 +79,19 @@
    "ok": false,
    "failed": [
     {
-     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-27&biddingArea=SE",
+     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-28&biddingArea=SE",
      "status": 403,
      "cors": false,
      "ok": false
     },
     {
-     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-27&biddingArea=SE1",
-     "status": 200,
+     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-28&biddingArea=SE1",
+     "status": 403,
      "cors": false,
      "ok": false
     },
     {
-     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-27&biddingArea=SE2",
+     "url": "https://www.svk.se/services/controlroom/v2/situation?date=2026-11-28&biddingArea=SE2",
      "status": 200,
      "cors": false,
      "ok": false
